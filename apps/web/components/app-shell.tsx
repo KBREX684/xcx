@@ -1,11 +1,18 @@
+"use client";
+
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { SidebarNavigation } from "./sidebar-navigation";
+import { SidebarCollapseIcon, SidebarExpandIcon, UserIcon } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
-import { UserIcon } from "./icons";
+
+const sidebarStorageKey = "acp-sidebar-collapsed";
 
 export type AppNavKey =
+  | "none"
   | "dashboard"
+  | "team"
+  | "messages"
   | "projects"
   | "approvals"
   | "agents"
@@ -25,7 +32,6 @@ type AppShellProps = {
   title: string;
   description: string;
   breadcrumbs?: BreadcrumbItem[];
-  actions?: ReactNode;
   navBadges?: NavBadgeMap;
   profileName?: string;
   profileEmail?: string;
@@ -38,16 +44,51 @@ export function AppShell({
   title,
   description,
   breadcrumbs = [],
-  actions,
   navBadges,
   profileName = "KBREX",
   profileEmail = "kbrex@example.com",
   workspaceName = "KBREX Studio",
   children
 }: AppShellProps) {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    try {
+      setSidebarCollapsed(window.localStorage.getItem(sidebarStorageKey) === "true");
+    } catch {
+      setSidebarCollapsed(false);
+    }
+  }, []);
+
+  function toggleSidebar() {
+    setSidebarCollapsed((current) => {
+      const next = !current;
+
+      try {
+        window.localStorage.setItem(sidebarStorageKey, next ? "true" : "false");
+      } catch {
+        // Ignore storage failures so the layout still works.
+      }
+
+      return next;
+    });
+  }
+
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-sidebar-collapsed={sidebarCollapsed ? "true" : "false"}>
       <aside className="app-sidebar">
+        <div className="app-sidebar-toolbar">
+          <button
+            type="button"
+            className="chrome-toggle-button"
+            aria-label="收起侧边栏"
+            title="收起侧边栏"
+            onClick={toggleSidebar}
+          >
+            <SidebarCollapseIcon />
+          </button>
+        </div>
+
         <SidebarNavigation
           activeNav={activeNav}
           navBadges={navBadges}
@@ -105,7 +146,17 @@ export function AppShell({
           </div>
 
           <div className="topbar-actions">
-            {actions}
+            {sidebarCollapsed ? (
+              <button
+                type="button"
+                className="chrome-toggle-button shell-reveal-button"
+                aria-label="展开侧边栏"
+                title="展开侧边栏"
+                onClick={toggleSidebar}
+              >
+                <SidebarExpandIcon />
+              </button>
+            ) : null}
             <ThemeToggle />
           </div>
         </header>

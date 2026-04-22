@@ -45,7 +45,7 @@ function isWorkbenchActive(activeNav: AppNavKey) {
 }
 
 function isTeamActive(activeNav: AppNavKey) {
-  return activeNav === "agents" || activeNav === "settings";
+  return activeNav === "team" || activeNav === "agents" || activeNav === "settings";
 }
 
 export function SidebarNavigation({
@@ -140,12 +140,12 @@ export function SidebarNavigation({
 
         <section className="sidebar-group" data-open={teamOpen ? "true" : "false"}>
           <div className="sidebar-group-header" data-active={isTeamActive(activeNav) ? "true" : "false"}>
-            <span className="sidebar-group-main">
+            <Link href="/team" className="sidebar-group-main">
               <span className="sidebar-group-icon">
                 <UsersIcon />
               </span>
               <span>团队</span>
-            </span>
+            </Link>
             <button
               type="button"
               className="sidebar-group-toggle"
@@ -180,15 +180,15 @@ export function SidebarNavigation({
           ) : null}
         </section>
 
-        <Link href="/approvals" className="sidebar-direct-link" data-active={activeNav === "approvals" ? "true" : "false"}>
+        <Link href="/messages" className="sidebar-direct-link" data-active={activeNav === "messages" ? "true" : "false"}>
           <span className="sidebar-group-main">
             <span className="sidebar-group-icon">
               <MessageIcon />
             </span>
             <span>消息</span>
           </span>
-          {typeof navBadges?.approvals === "number" && navBadges.approvals > 0 ? (
-            <span className="sidebar-badge">{navBadges.approvals > 99 ? "99+" : navBadges.approvals}</span>
+          {typeof navBadges?.messages === "number" && navBadges.messages > 0 ? (
+            <span className="sidebar-badge">{navBadges.messages > 99 ? "99+" : navBadges.messages}</span>
           ) : (
             <span className="sidebar-direct-icon">
               <BellIcon />

@@ -24,28 +24,42 @@ export default async function CertificatesPage() {
         {certificates.length === 0 ? (
           <div className="empty-state">还没有证明书摘要。项目完成闭环、沉淀过程材料后就会在这里出现。</div>
         ) : (
-          <div className="cards-grid">
-            {certificates.map((certificate) => (
-              <article key={certificate.id} className="card-panel">
-                <div className="list-card-head">
-                  <div>
-                    <p className="eyebrow-text">{certificate.projectName}</p>
-                    <h3 className="list-card-title">{certificate.title}</h3>
-                  </div>
-                  <StatusPill status={certificate.status} />
-                </div>
-                <div className="meta-column">
-                  <span>核验码：{certificate.verificationCode}</span>
-                  <span>生成时间：{formatDateTime(certificate.generatedAt)}</span>
-                  <span>最近更新：{formatDateTime(certificate.updatedAt)}</span>
-                </div>
-                <div className="link-row">
-                  <Link href={`/projects/${certificate.projectId}`} className="inline-link">
-                    打开所属项目
-                  </Link>
-                </div>
-              </article>
-            ))}
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>项目</th>
+                  <th>证明书</th>
+                  <th>状态</th>
+                  <th>核验码</th>
+                  <th>更新时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                {certificates.map((certificate) => (
+                  <tr key={certificate.id}>
+                    <td>{certificate.projectName}</td>
+                    <td>
+                      <div className="meta-column">
+                        <strong>{certificate.title}</strong>
+                        <span>生成于 {formatDateTime(certificate.generatedAt)}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <StatusPill status={certificate.status} />
+                    </td>
+                    <td>{certificate.verificationCode}</td>
+                    <td>{formatDateTime(certificate.updatedAt)}</td>
+                    <td>
+                      <Link href={`/projects/${certificate.projectId}`} className="table-link">
+                        打开项目
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>

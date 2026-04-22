@@ -161,7 +161,7 @@ export default async function HomePage() {
   return (
     <AppShell
       activeNav="dashboard"
-      navBadges={{ approvals: dashboard.pendingApprovalCount }}
+      navBadges={{ messages: dashboard.pendingApprovalCount }}
       title={`${greeting}，${PROFILE_NAME}`}
       description={`这里是你的 AI Agent 团队指挥台，用来管理项目、团队与交付成果。当前工作空间为 ${dashboard.workspaceName}。`}
     >
@@ -300,7 +300,7 @@ export default async function HomePage() {
           )}
 
           <div className="surface-card-footer">
-            <Link href="/approvals" className="quiet-link">
+            <Link href="/messages" className="quiet-link">
               查看全部动态
               <ArrowRightIcon />
             </Link>

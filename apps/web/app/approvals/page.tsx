@@ -10,7 +10,7 @@ export default async function ApprovalsPage() {
 
   return (
     <AppShell
-      activeNav="approvals"
+      activeNav="none"
       title="审批中心"
       description="集中处理待审批执行记录，并保留每一次通过或驳回的历史轨迹。"
       breadcrumbs={[{ label: "审批" }]}

@@ -34,11 +34,6 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
         { label: "项目", href: "/projects" },
         { label: project.name }
       ]}
-      actions={
-        <Link href={`/projects/${project.id}/settings`} className="ghost-link">
-          项目设置
-        </Link>
-      }
     >
       <section className="hero-grid">
         <article className="hero-panel">

@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import Script from "next/script";
 import { controlPlaneTypography } from "@agent-control-plane/ui";
 import "./globals.css";
 
@@ -13,7 +14,8 @@ const themeBootScript = `
   const key = "acp-theme-preference";
   const root = document.documentElement;
   try {
-    const preference = localStorage.getItem(key) || "system";
+    const saved = localStorage.getItem(key);
+    const preference = saved === "light" || saved === "dark" ? saved : "system";
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const resolved = preference === "system" ? (media.matches ? "dark" : "light") : preference;
     root.dataset.themePreference = preference;
@@ -35,10 +37,12 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-CN" suppressHydrationWarning style={rootVariables}>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
-      </head>
-      <body>{children}</body>
+      <body>
+        <Script id="theme-boot" strategy="beforeInteractive">
+          {themeBootScript}
+        </Script>
+        {children}
+      </body>
     </html>
   );
 }
