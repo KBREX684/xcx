@@ -29,7 +29,7 @@ const themeBootScript = `
 
 export const metadata = {
   title: "智能代理指挥台",
-  description: "全中文、双主题、低疲劳的智能代理控制台"
+  description: "全中文、可切换明暗主题的 AI Agent 控制台"
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

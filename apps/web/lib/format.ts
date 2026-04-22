@@ -76,6 +76,42 @@ export function formatDate(value: string | null | undefined) {
   });
 }
 
+export function formatRelativeTime(value: string | null | undefined) {
+  if (!value) {
+    return "刚刚";
+  }
+
+  const normalized = new Date(value);
+  if (Number.isNaN(normalized.getTime())) {
+    return "刚刚";
+  }
+
+  const diffMs = normalized.getTime() - Date.now();
+  const absoluteSeconds = Math.round(Math.abs(diffMs) / 1000);
+  const formatter = new Intl.RelativeTimeFormat("zh-CN", { numeric: "auto" });
+
+  if (absoluteSeconds < 60) {
+    return formatter.format(Math.round(diffMs / 1000), "second");
+  }
+
+  const absoluteMinutes = Math.round(absoluteSeconds / 60);
+  if (absoluteMinutes < 60) {
+    return formatter.format(Math.round(diffMs / (1000 * 60)), "minute");
+  }
+
+  const absoluteHours = Math.round(absoluteMinutes / 60);
+  if (absoluteHours < 24) {
+    return formatter.format(Math.round(diffMs / (1000 * 60 * 60)), "hour");
+  }
+
+  const absoluteDays = Math.round(absoluteHours / 24);
+  if (absoluteDays < 30) {
+    return formatter.format(Math.round(diffMs / (1000 * 60 * 60 * 24)), "day");
+  }
+
+  return formatDate(value);
+}
+
 export function shortTrace(traceId: string | null | undefined, length = 8) {
   if (!traceId) {
     return "暂无";

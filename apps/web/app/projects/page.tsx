@@ -2,9 +2,10 @@ import Link from "next/link";
 import { getStatusLabel, projectStatuses } from "@agent-control-plane/domain";
 import { AppShell } from "../../components/app-shell";
 import { CreateProjectForm } from "../../components/create-project-form";
+import { ArrowRightIcon, FolderIcon } from "../../components/icons";
 import { StatusPill } from "../../components/status-pill";
-import { getFilteredProjects } from "../../lib/api";
-import { formatDate } from "../../lib/format";
+import { getDashboardSummary, getFilteredProjects } from "../../lib/api";
+import { formatDate, formatRelativeTime } from "../../lib/format";
 
 type ProjectsPageProps = {
   searchParams?: Promise<{
@@ -13,35 +14,51 @@ type ProjectsPageProps = {
   }>;
 };
 
+function getProjectProgress(taskCount: number, completedTaskCount: number, status: string) {
+  if (status === "delivered" || status === "completed") {
+    return 100;
+  }
+
+  if (taskCount <= 0) {
+    return 0;
+  }
+
+  return Math.min(100, Math.max(0, Math.round((completedTaskCount / taskCount) * 100)));
+}
+
 export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
   const resolved = searchParams ? await searchParams : {};
   const status = typeof resolved.status === "string" ? resolved.status : "";
   const q = typeof resolved.q === "string" ? resolved.q : "";
-  const projects = await getFilteredProjects({
-    status: status || undefined,
-    q: q || undefined
-  });
+
+  const [projects, dashboard] = await Promise.all([
+    getFilteredProjects({
+      status: status || undefined,
+      q: q || undefined
+    }),
+    getDashboardSummary()
+  ]);
 
   return (
     <AppShell
       activeNav="projects"
-      title="项目总览"
-      description="按状态、关键词和交付节奏查看所有项目，并从这里进入项目 cockpit。"
-      breadcrumbs={[{ label: "项目" }]}
+      navBadges={{ approvals: dashboard.pendingApprovalCount }}
+      title="项目"
+      description="管理当前交付项目、查看推进状态，并从这里继续进入各个项目空间。"
+      breadcrumbs={[{ label: "工作台", href: "/" }, { label: "项目" }]}
     >
-      <section className="content-grid">
+      <section className="page-grid page-grid-projects">
         <div className="stack-panel">
-          <section className="panel">
-            <div className="panel-heading">
+          <section className="surface-card surface-card-emphasis">
+            <div className="surface-card-head">
               <div>
-                <p className="eyebrow-text">过滤条件</p>
-                <h3 className="panel-title">快速收拢视图</h3>
+                <h2 className="surface-card-title">项目列表</h2>
+                <p className="surface-card-description">通过状态与关键词筛选快速定位项目，再继续下钻到执行详情。</p>
               </div>
-              <Link href="/projects" className="ghost-link">
-                清空筛选
-              </Link>
+              <span className="list-result-badge">{projects.length} 个结果</span>
             </div>
-            <form action="/projects" className="filters-row">
+
+            <form action="/projects" className="projects-filter-bar">
               <label className="compact-field">
                 项目状态
                 <select name="status" className="field-control" defaultValue={status}>
@@ -59,71 +76,98 @@ export default async function ProjectsPage({ searchParams }: ProjectsPageProps) 
                   className="field-control"
                   name="q"
                   defaultValue={q}
-                  placeholder="输入项目名称、编号或客户名称"
+                  placeholder="搜索项目名称、编号或客户名称"
                 />
               </label>
-              <button type="submit" className="action-button">
+              <button type="submit" className="ghost-button">
                 应用筛选
               </button>
             </form>
-          </section>
 
-          <section className="panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow-text">项目列表</p>
-                <h3 className="panel-title">当前项目视图</h3>
-              </div>
-            </div>
             {projects.length === 0 ? (
-              <div className="empty-state">当前筛选条件下没有项目，可以尝试清空条件或直接创建一个新项目。</div>
+              <div className="empty-state">当前筛选条件下没有项目，可以清空条件或创建一个新的交付项目。</div>
             ) : (
-              <div className="cards-grid">
-                {projects.map((project) => (
-                  <article key={project.id} className="card-panel">
-                    <div className="list-card-head">
-                      <div>
-                        <p className="eyebrow-text">{project.projectCode}</p>
-                        <h4 className="list-card-title">{project.name}</h4>
+              <div className="project-record-list">
+                {projects.map((project) => {
+                  const progress = getProjectProgress(
+                    project.taskCount,
+                    project.completedTaskCount,
+                    project.status
+                  );
+
+                  return (
+                    <Link key={project.id} href={`/projects/${project.id}`} className="project-record-row">
+                      <span className="list-icon-chip" data-tone="indigo">
+                        <FolderIcon />
+                      </span>
+
+                      <div className="project-record-main">
+                        <div className="project-record-head">
+                          <div>
+                            <h3 className="list-item-title">{project.name}</h3>
+                            <p className="list-item-meta">
+                              {project.projectCode} · {project.customerName}
+                            </p>
+                          </div>
+                          <StatusPill status={project.latestRunStatus ?? project.status} />
+                        </div>
+
+                        <div className="project-record-meta">
+                          <span>任务 {project.taskCount}</span>
+                          <span>完成 {project.completedTaskCount}</span>
+                          <span>待审批 {project.pendingApprovalCount}</span>
+                          <span>目标交付 {formatDate(project.targetDeliveryAt)}</span>
+                          <span>最近更新 {formatRelativeTime(project.lastEventAt)}</span>
+                        </div>
+
+                        <div className="project-feed-progress">
+                          <div className="progress-track">
+                            <span className="progress-fill" data-tone="indigo" style={{ width: `${progress}%` }} />
+                          </div>
+                          <span className="progress-value">{progress}%</span>
+                        </div>
                       </div>
-                      <StatusPill status={project.latestRunStatus ?? project.status} />
-                    </div>
-                    <p className="supporting-text">客户：{project.customerName}</p>
-                    <div className="meta-row">
-                      <span>任务 {project.taskCount}</span>
-                      <span>完成 {project.completedTaskCount}</span>
-                      <span>待审批 {project.pendingApprovalCount}</span>
-                    </div>
-                    <div className="meta-row">
-                      <span>目标交付 {formatDate(project.targetDeliveryAt)}</span>
-                      <span>最近动态 {formatDate(project.lastEventAt)}</span>
-                    </div>
-                    <div className="link-row">
-                      <Link href={`/projects/${project.id}`} className="inline-link">
-                        进入项目指挥台
-                      </Link>
-                      <Link href={`/projects/${project.id}/settings`} className="inline-link">
-                        项目设置
-                      </Link>
-                    </div>
-                  </article>
-                ))}
+
+                      <span className="project-record-arrow">
+                        <ArrowRightIcon />
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </section>
         </div>
 
-        <div className="stack-panel">
-          <section className="panel">
-            <div className="panel-heading">
+        <aside className="stack-panel">
+          <section className="surface-card">
+            <div className="surface-card-head">
               <div>
-                <p className="eyebrow-text">新建项目</p>
-                <h3 className="panel-title">创建新的交付条目</h3>
+                <h2 className="surface-card-title">新建项目</h2>
+                <p className="surface-card-description">为新的交付需求建立空间，并直接进入项目视图。</p>
               </div>
             </div>
             <CreateProjectForm />
           </section>
-        </div>
+
+          <section className="surface-card">
+            <div className="surface-card-head">
+              <div>
+                <h2 className="surface-card-title">当前提示</h2>
+                <p className="surface-card-description">保持项目筛选视图足够干净，帮助团队快速进入正确的上下文。</p>
+              </div>
+            </div>
+            <div className="compact-stack">
+              <div className="subtle-note">
+                默认优先关注“进行中”“待审批”与最近有动态的项目，避免信息噪音干扰。
+              </div>
+              <Link href="/" className="quiet-link">
+                返回工作台首页
+                <ArrowRightIcon />
+              </Link>
+            </div>
+          </section>
+        </aside>
       </section>
     </AppShell>
   );
