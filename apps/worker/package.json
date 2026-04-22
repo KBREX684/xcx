@@ -1,0 +1,14 @@
+{
+  "name": "@agent-control-plane/worker",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@agent-control-plane/config": "0.1.0",
+    "@agent-control-plane/domain": "0.1.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsup --config tsup.config.ts",
+    "start": "tsx src/main.ts"
+  }
+}

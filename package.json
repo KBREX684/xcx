@@ -1,0 +1,51 @@
+{
+  "name": "agent-control-plane",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@11.11.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run build:shared && concurrently -n api,worker,web -c yellow,cyan,magenta \"npm run dev -w @agent-control-plane/api\" \"npm run dev -w @agent-control-plane/worker\" \"npm run dev -w @agent-control-plane/web\"",
+    "build": "npm run build:shared && npm run build -w @agent-control-plane/api && npm run build -w @agent-control-plane/worker && npm run build -w @agent-control-plane/web",
+    "build:shared": "npm run build -w @agent-control-plane/domain && npm run build -w @agent-control-plane/ui && npm run build -w @agent-control-plane/config",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "vitest run packages/domain/src/transitions.test.ts",
+    "test:integration": "cross-env DATABASE_URL=file:./test.db ACP_DATA_DIR=.test-data FORCE_RESET=1 node scripts/bootstrap-sqlite.mjs && vitest run apps/api/test/p1.integration.test.ts",
+    "test:web": "playwright test",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "db:push": "node scripts/bootstrap-sqlite.mjs",
+    "db:migrate": "node scripts/bootstrap-sqlite.mjs",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:reset": "cross-env FORCE_RESET=1 node scripts/bootstrap-sqlite.mjs && npm run db:seed",
+    "setup": "npm run prisma:generate && npm run db:push && npm run db:seed"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@agent-control-plane/domain": "0.1.0",
+    "@prisma/client": "^6.18.0",
+    "better-sqlite3": "^12.9.0",
+    "dotenv": "^17.4.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0",
+    "@types/supertest": "^7.2.0",
+    "@vitest/coverage-v8": "^4.1.5",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.4",
+    "prisma": "^6.18.0",
+    "supertest": "^7.2.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
+  }
+}

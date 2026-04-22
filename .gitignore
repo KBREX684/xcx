@@ -1,0 +1,15 @@
+node_modules/
+.next/
+dist/
+coverage/
+.data/
+.test-data/
+playwright-report/
+test-results/
+prisma/dev.db
+prisma/test.db
+prisma/test.db-journal
+prisma/dev.db-journal
+.env
+npm-debug.log*
+

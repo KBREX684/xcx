@@ -1,0 +1,20 @@
+{
+  "name": "@agent-control-plane/api",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@agent-control-plane/config": "0.1.0",
+    "@agent-control-plane/domain": "0.1.0",
+    "@nestjs/common": "^11.1.19",
+    "@nestjs/core": "^11.1.19",
+    "@nestjs/platform-express": "^11.1.19",
+    "@nestjs/testing": "^11.1.19",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsup --config tsup.config.ts",
+    "start": "tsx src/main.ts"
+  }
+}

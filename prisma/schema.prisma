@@ -1,0 +1,272 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+
+enum ProjectStatus {
+  draft
+  active
+  paused
+  delivered
+  archived
+}
+
+enum AgentStatus {
+  active
+  inactive
+  maintenance
+  error
+}
+
+enum WorkflowTemplateStatus {
+  active
+  inactive
+  archived
+}
+
+enum TaskStatus {
+  backlog
+  planned
+  in_progress
+  waiting_approval
+  blocked
+  completed
+  delivered
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum OwnerType {
+  member
+  agent
+}
+
+enum RunStatus {
+  queued
+  running
+  waiting_approval
+  succeeded
+  failed
+  cancelled
+  timed_out
+}
+
+enum TriggerType {
+  manual
+  webhook
+  scheduled
+}
+
+enum ApprovalDecision {
+  approved
+  rejected
+  cancelled
+}
+
+enum ActorType {
+  system
+  member
+  agent
+  worker
+}
+
+model Workspace {
+  id             String             @id @default(cuid())
+  name           String
+  slug           String             @unique
+  ownerMemberId  String?
+  planType       String             @default("internal")
+  status         String             @default("active")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  members        Member[]           @relation("WorkspaceMembers")
+  projects       Project[]
+  agents         Agent[]
+  templates      WorkflowTemplate[]
+  events         Event[]
+}
+
+model Member {
+  id                String      @id @default(cuid())
+  workspaceId       String
+  name              String
+  email             String      @unique
+  phone             String?
+  role              String
+  status            String      @default("active")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  workspace         Workspace   @relation("WorkspaceMembers", fields: [workspaceId], references: [id], onDelete: Cascade)
+  ownedProjects     Project[]   @relation("ProjectOwner")
+  approvals         Approval[]
+  ownedTasks        Task[]      @relation("TaskOwnerMember")
+}
+
+model Project {
+  id                   String        @id @default(cuid())
+  workspaceId          String
+  name                 String
+  projectCode          String        @unique
+  customerName         String
+  ownerMemberId        String
+  status               ProjectStatus @default(active)
+  targetDeliveryAt     DateTime?
+  currentCertificateId String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  workspace            Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ownerMember          Member        @relation("ProjectOwner", fields: [ownerMemberId], references: [id], onDelete: Restrict)
+  tasks                Task[]
+  runs                 Run[]
+  artifacts            Artifact[]
+  approvals            Approval[]
+  events               Event[]
+  @@index([workspaceId, status, updatedAt(sort: Desc)])
+}
+
+model Agent {
+  id            String      @id @default(cuid())
+  workspaceId   String
+  name          String
+  avatarUrl     String?
+  roleName      String
+  tags          String?
+  adapterType   String
+  status        AgentStatus @default(active)
+  description   String
+  healthStatus  String      @default("healthy")
+  lastSeenAt    DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  workspace     Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runs          Run[]
+  ownedTasks    Task[]      @relation("TaskOwnerAgent")
+}
+
+model WorkflowTemplate {
+  id            String                 @id @default(cuid())
+  workspaceId   String
+  name          String
+  scenarioType  String
+  version       String
+  triggerType   TriggerType
+  status        WorkflowTemplateStatus @default(active)
+  nodesJson     String
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  workspace     Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  tasks         Task[]
+  runs          Run[]
+}
+
+model Task {
+  id               String        @id @default(cuid())
+  projectId        String
+  sourceTemplateId String?
+  title            String
+  description      String
+  status           TaskStatus    @default(backlog)
+  priority         TaskPriority  @default(medium)
+  ownerType        OwnerType
+  ownerMemberId    String?
+  ownerAgentId     String?
+  dueAt            DateTime?
+  blockedReason    String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  project          Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceTemplate   WorkflowTemplate? @relation(fields: [sourceTemplateId], references: [id], onDelete: SetNull)
+  ownerMember      Member?       @relation("TaskOwnerMember", fields: [ownerMemberId], references: [id], onDelete: SetNull)
+  ownerAgent       Agent?        @relation("TaskOwnerAgent", fields: [ownerAgentId], references: [id], onDelete: SetNull)
+  runs             Run[]
+  approvals        Approval[]
+  @@index([projectId, status, priority, dueAt])
+}
+
+model Run {
+  id                 String           @id @default(cuid())
+  projectId          String
+  taskId             String
+  workflowTemplateId String?
+  nodeKey            String
+  agentId            String
+  status             RunStatus        @default(queued)
+  triggerType        TriggerType
+  inputPayload       String?
+  outputSummary      String?
+  errorMessage       String?
+  retryCount         Int              @default(0)
+  traceId            String
+  startedAt          DateTime?
+  finishedAt         DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  project            Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  task               Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  workflowTemplate   WorkflowTemplate? @relation(fields: [workflowTemplateId], references: [id], onDelete: SetNull)
+  agent              Agent            @relation(fields: [agentId], references: [id], onDelete: Restrict)
+  artifacts          Artifact[]
+  approval           Approval?
+  @@index([projectId, status, startedAt(sort: Desc)])
+  @@index([traceId])
+}
+
+model Artifact {
+  id           String    @id @default(cuid())
+  projectId    String
+  runId        String
+  artifactType String
+  title        String
+  storageUri   String
+  mimeType     String
+  sha256Digest String
+  metadataJson String?
+  createdAt    DateTime  @default(now())
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  run          Run       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  @@index([runId])
+}
+
+model Approval {
+  id               String           @id @default(cuid())
+  projectId        String
+  runId            String           @unique
+  taskId           String
+  approverMemberId String
+  decision         ApprovalDecision
+  comment          String?
+  decidedAt        DateTime         @default(now())
+  createdAt        DateTime         @default(now())
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  run              Run              @relation(fields: [runId], references: [id], onDelete: Cascade)
+  task             Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  approverMember   Member           @relation(fields: [approverMemberId], references: [id], onDelete: Restrict)
+  @@index([runId, decidedAt(sort: Desc)])
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  workspaceId String
+  projectId   String?
+  entityType  String
+  entityId    String
+  eventType   String
+  actorType   ActorType
+  actorId     String
+  traceId     String
+  payloadJson String?
+  occurredAt  DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@index([projectId, occurredAt(sort: Desc)])
+}
