@@ -29,6 +29,12 @@ enum WorkflowTemplateStatus {
   archived
 }
 
+enum CertificateStatus {
+  ready
+  generating
+  archived
+}
+
 enum TaskStatus {
   backlog
   planned
@@ -94,6 +100,7 @@ model Workspace {
   agents         Agent[]
   templates      WorkflowTemplate[]
   events         Event[]
+  integrationConfig WorkspaceIntegrationConfig?
 }
 
 model Member {
@@ -131,6 +138,7 @@ model Project {
   artifacts            Artifact[]
   approvals            Approval[]
   events               Event[]
+  certificates         Certificate[]
   @@index([workspaceId, status, updatedAt(sort: Desc)])
 }
 
@@ -269,4 +277,30 @@ model Event {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   @@index([projectId, occurredAt(sort: Desc)])
+}
+
+model Certificate {
+  id               String            @id @default(cuid())
+  projectId        String
+  title            String
+  status           CertificateStatus @default(ready)
+  verificationCode String            @unique
+  summaryJson      String?
+  generatedAt      DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  @@index([projectId, generatedAt(sort: Desc)])
+}
+
+model WorkspaceIntegrationConfig {
+  id                    String    @id @default(cuid())
+  workspaceId           String    @unique
+  defaultExecutorType   String    @default("mock")
+  objectStorageProvider String    @default("local-file")
+  notificationChannel   String    @default("none")
+  callbackBaseUrl       String?
+  agentEndpoint         String?
+  approvalMode          String    @default("manual")
+  updatedAt             DateTime  @updatedAt
+  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }

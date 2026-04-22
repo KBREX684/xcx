@@ -7,14 +7,14 @@ async function seedWorkspace() {
   await prisma.workspace.upsert({
     where: { id: DEMO_IDS.workspaceId },
     update: {
-      name: "Studio Zero",
+      name: "零号工作室",
       slug: "studio-zero",
       planType: "internal",
       status: "active"
     },
     create: {
       id: DEMO_IDS.workspaceId,
-      name: "Studio Zero",
+      name: "零号工作室",
       slug: "studio-zero",
       planType: "internal",
       status: "active"
@@ -58,7 +58,7 @@ async function seedWorkspace() {
   await prisma.workspace.upsert({
     where: { id: DEMO_IDS.workspaceId },
     update: {
-      name: "Studio Zero",
+      name: "零号工作室",
       slug: "studio-zero",
       ownerMemberId: DEMO_IDS.ownerMemberId,
       planType: "internal",
@@ -66,7 +66,7 @@ async function seedWorkspace() {
     },
     create: {
       id: DEMO_IDS.workspaceId,
-      name: "Studio Zero",
+      name: "零号工作室",
       slug: "studio-zero",
       ownerMemberId: DEMO_IDS.ownerMemberId,
       planType: "internal",
@@ -79,20 +79,20 @@ async function seedAgentAndTemplate() {
   await prisma.agent.upsert({
     where: { id: DEMO_IDS.agentId },
     update: {
-      name: "Delivery Builder",
-      roleName: "前端交付 Agent",
+      name: "交付生成代理",
+      roleName: "前端交付代理",
       adapterType: "mock",
       status: "active",
-      description: "用于 P1 阶段演示的本地 mock 执行器。"
+      description: "用于 MVP 阶段演示的本地模拟执行器。"
     },
     create: {
       id: DEMO_IDS.agentId,
       workspaceId: DEMO_IDS.workspaceId,
-      name: "Delivery Builder",
-      roleName: "前端交付 Agent",
+      name: "交付生成代理",
+      roleName: "前端交付代理",
       adapterType: "mock",
       status: "active",
-      description: "用于 P1 阶段演示的本地 mock 执行器。",
+      description: "用于 MVP 阶段演示的本地模拟执行器。",
       tags: JSON.stringify(["mock", "delivery", "mini-program"])
     }
   });
@@ -116,6 +116,27 @@ async function seedAgentAndTemplate() {
       triggerType: "manual",
       status: "active",
       nodesJson: JSON.stringify(DEFAULT_WORKFLOW_TEMPLATE.nodes)
+    }
+  });
+
+  await prisma.workspaceIntegrationConfig.upsert({
+    where: { workspaceId: DEMO_IDS.workspaceId },
+    update: {
+      defaultExecutorType: "mock",
+      objectStorageProvider: "local-file",
+      notificationChannel: "wechat",
+      callbackBaseUrl: "https://agent-control-plane.local/callbacks",
+      agentEndpoint: "https://agent-control-plane.local/openapi",
+      approvalMode: "manual"
+    },
+    create: {
+      workspaceId: DEMO_IDS.workspaceId,
+      defaultExecutorType: "mock",
+      objectStorageProvider: "local-file",
+      notificationChannel: "wechat",
+      callbackBaseUrl: "https://agent-control-plane.local/callbacks",
+      agentEndpoint: "https://agent-control-plane.local/openapi",
+      approvalMode: "manual"
     }
   });
 }
@@ -176,6 +197,41 @@ async function seedProject() {
       }
     });
   }
+
+  await prisma.certificate.upsert({
+    where: { verificationCode: "ACP-DEMO-20260422" },
+    update: {
+      projectId: DEMO_IDS.projectId,
+      title: "星河商城小程序 · 阶段过程证明书",
+      status: "ready",
+      summaryJson: JSON.stringify({
+        version: "0.1.0",
+        highlights: ["已建立交付闭环", "已沉淀审批记录", "已生成交付摘要"]
+      })
+    },
+    create: {
+      projectId: DEMO_IDS.projectId,
+      title: "星河商城小程序 · 阶段过程证明书",
+      status: "ready",
+      verificationCode: "ACP-DEMO-20260422",
+      summaryJson: JSON.stringify({
+        version: "0.1.0",
+        highlights: ["已建立交付闭环", "已沉淀审批记录", "已生成交付摘要"]
+      })
+    }
+  });
+
+  await prisma.project.update({
+    where: { id: DEMO_IDS.projectId },
+    data: {
+      currentCertificateId: (
+        await prisma.certificate.findUnique({
+          where: { verificationCode: "ACP-DEMO-20260422" },
+          select: { id: true }
+        })
+      )?.id
+    }
+  });
 }
 
 async function main() {

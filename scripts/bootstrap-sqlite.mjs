@@ -26,16 +26,61 @@ if (forceReset) {
 const db = new Database(databasePath);
 db.pragma("foreign_keys = ON");
 
-const hasWorkspaceTable = db
-  .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'Workspace'")
-  .get();
+function hasTable(name) {
+  return db
+    .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?")
+    .get(name);
+}
+
+function hasColumn(tableName, columnName) {
+  const columns = db.prepare(`PRAGMA table_info("${tableName}")`).all();
+  return columns.some((column) => column.name === columnName);
+}
+
+const hasWorkspaceTable = hasTable("Workspace");
 
 if (!hasWorkspaceTable) {
   const migrationSql = fs.readFileSync(migrationPath, "utf8");
   db.exec(migrationSql);
   console.log(`[db] applied initial migration to ${databasePath}`);
 } else {
-  console.log(`[db] schema already present at ${databasePath}`);
+  const upgradeStatements = [];
+
+  if (!hasColumn("Project", "currentCertificateId")) {
+    upgradeStatements.push(`ALTER TABLE "Project" ADD COLUMN "currentCertificateId" TEXT;`);
+  }
+
+  upgradeStatements.push(
+    `CREATE TABLE IF NOT EXISTS "Certificate" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "projectId" TEXT NOT NULL,
+      "title" TEXT NOT NULL,
+      "status" TEXT NOT NULL DEFAULT 'ready',
+      "verificationCode" TEXT NOT NULL,
+      "summaryJson" TEXT,
+      "generatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" DATETIME NOT NULL,
+      CONSTRAINT "Certificate_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "Certificate_verificationCode_key" ON "Certificate"("verificationCode");`,
+    `CREATE INDEX IF NOT EXISTS "Certificate_projectId_generatedAt_idx" ON "Certificate"("projectId", "generatedAt" DESC);`,
+    `CREATE TABLE IF NOT EXISTS "WorkspaceIntegrationConfig" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "workspaceId" TEXT NOT NULL,
+      "defaultExecutorType" TEXT NOT NULL DEFAULT 'mock',
+      "objectStorageProvider" TEXT NOT NULL DEFAULT 'local-file',
+      "notificationChannel" TEXT NOT NULL DEFAULT 'none',
+      "callbackBaseUrl" TEXT,
+      "agentEndpoint" TEXT,
+      "approvalMode" TEXT NOT NULL DEFAULT 'manual',
+      "updatedAt" DATETIME NOT NULL,
+      CONSTRAINT "WorkspaceIntegrationConfig_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    );`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS "WorkspaceIntegrationConfig_workspaceId_key" ON "WorkspaceIntegrationConfig"("workspaceId");`
+  );
+
+  db.exec(upgradeStatements.join("\n"));
+  console.log(`[db] schema already present at ${databasePath}, ensured P2 extensions`);
 }
 
 db.close();

@@ -161,6 +161,31 @@ CREATE TABLE "Event" (
     CONSTRAINT "Event_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
+CREATE TABLE "Certificate" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "projectId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'ready',
+    "verificationCode" TEXT NOT NULL,
+    "summaryJson" TEXT,
+    "generatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "Certificate_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE "WorkspaceIntegrationConfig" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "workspaceId" TEXT NOT NULL,
+    "defaultExecutorType" TEXT NOT NULL DEFAULT 'mock',
+    "objectStorageProvider" TEXT NOT NULL DEFAULT 'local-file',
+    "notificationChannel" TEXT NOT NULL DEFAULT 'none',
+    "callbackBaseUrl" TEXT,
+    "agentEndpoint" TEXT,
+    "approvalMode" TEXT NOT NULL DEFAULT 'manual',
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "WorkspaceIntegrationConfig_workspaceId_fkey" FOREIGN KEY ("workspaceId") REFERENCES "Workspace" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 CREATE UNIQUE INDEX "Workspace_slug_key" ON "Workspace"("slug");
 CREATE UNIQUE INDEX "Member_email_key" ON "Member"("email");
 CREATE UNIQUE INDEX "Project_projectCode_key" ON "Project"("projectCode");
@@ -172,3 +197,6 @@ CREATE INDEX "Artifact_runId_idx" ON "Artifact"("runId");
 CREATE UNIQUE INDEX "Approval_runId_key" ON "Approval"("runId");
 CREATE INDEX "Approval_runId_decidedAt_idx" ON "Approval"("runId", "decidedAt" DESC);
 CREATE INDEX "Event_projectId_occurredAt_idx" ON "Event"("projectId", "occurredAt" DESC);
+CREATE UNIQUE INDEX "Certificate_verificationCode_key" ON "Certificate"("verificationCode");
+CREATE INDEX "Certificate_projectId_generatedAt_idx" ON "Certificate"("projectId", "generatedAt" DESC);
+CREATE UNIQUE INDEX "WorkspaceIntegrationConfig_workspaceId_key" ON "WorkspaceIntegrationConfig"("workspaceId");

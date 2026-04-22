@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Inject, Param, Post, Req } from "@nestjs/common";
+import { Body, Controller, Get, Inject, Param, Post, Put, Query, Req } from "@nestjs/common";
 import type { Request } from "express";
 import { ControlPlaneService } from "./control-plane.service";
 import { resolveTraceId } from "./trace";
@@ -8,13 +8,23 @@ export class ProjectsController {
   constructor(@Inject(ControlPlaneService) private readonly service: ControlPlaneService) {}
 
   @Get()
-  async listProjects() {
-    return this.service.listProjects();
+  async listProjects(@Query("status") status?: string, @Query("q") q?: string) {
+    return this.service.listProjects({ status, q });
+  }
+
+  @Get(":projectId")
+  async getProject(@Param("projectId") projectId: string) {
+    return this.service.getProjectDetail(projectId);
   }
 
   @Post()
   async createProject(@Body() body: unknown, @Req() request: Request) {
     return this.service.createProject(body as never, resolveTraceId(request));
+  }
+
+  @Put(":projectId")
+  async updateProject(@Param("projectId") projectId: string, @Body() body: unknown, @Req() request: Request) {
+    return this.service.updateProject(projectId, body as never, resolveTraceId(request));
   }
 
   @Get(":projectId/tasks")
@@ -46,4 +56,3 @@ export class ProjectsController {
     return this.service.listEvents(projectId);
   }
 }
-

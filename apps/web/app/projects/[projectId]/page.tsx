@@ -1,9 +1,12 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AppShell } from "../../../components/app-shell";
 import { ApprovalForm } from "../../../components/approval-form";
 import { StatusPill } from "../../../components/status-pill";
 import { TaskCreateForm } from "../../../components/task-create-form";
 import { TriggerWorkflowForm } from "../../../components/trigger-workflow-form";
 import { getProjectCockpit } from "../../../lib/api";
+import { formatDate, formatDateTime, shortTrace } from "../../../lib/format";
 
 type ProjectPageProps = {
   params: Promise<{
@@ -13,188 +16,258 @@ type ProjectPageProps = {
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
-  const cockpit = await getProjectCockpit(projectId);
+  const cockpit = await getProjectCockpit(projectId).catch(() => null);
 
   if (!cockpit) {
     notFound();
   }
 
   const { project, currentRun, tasks, artifacts, events, template } = cockpit;
+  const returnPath = `/projects/${project.id}`;
 
   return (
-    <main className="workspace-shell">
-      <header className="workspace-header">
-        <a href="/" className="workspace-mark">
-          返回工作区
-        </a>
-        <div className="workspace-mark">Template · {template.name}</div>
-      </header>
-
-      <section className="cockpit-grid">
-        <div className="cockpit-lead">
-          <div className="hero-panel cockpit-ribbon">
-            <div className="cockpit-ribbon-head">
-              <div>
-                <div className="workspace-kicker">{project.projectCode}</div>
-                <h1 className="cockpit-title">{project.name}</h1>
-                <p className="cockpit-copy">
-                  当前对接客户为 {project.customerName}。P1 cockpit 聚焦于流程触发、审批决策与证据沉淀，让你能在一个页面里看到执行链路的主干。
-                </p>
-              </div>
-              <StatusPill status={currentRun?.status ?? project.status} />
+    <AppShell
+      activeNav="projects"
+      title={project.name}
+      description={`面向 ${project.customerName} 的项目指挥台，聚合任务、执行记录、审批与交付产物。`}
+      breadcrumbs={[
+        { label: "项目", href: "/projects" },
+        { label: project.name }
+      ]}
+      actions={
+        <Link href={`/projects/${project.id}/settings`} className="ghost-link">
+          项目设置
+        </Link>
+      }
+    >
+      <section className="hero-grid">
+        <article className="hero-panel">
+          <div className="hero-kicker">{project.projectCode}</div>
+          <div className="list-card-head">
+            <div>
+              <h2 className="hero-title">{project.name}</h2>
+              <p className="hero-copy">
+                这是项目的总览 cockpit。你可以在这里掌握当前任务推进、执行记录状态、审批入口、交付产物与事件时间线，
+                不再需要在多个页面之间来回切换。
+              </p>
             </div>
-
-            <div className="cockpit-metrics">
-              <div className="cockpit-metric">
-                <span className="metric-label">任务总数</span>
-                <div className="metric-value">{project.taskCount}</div>
-              </div>
-              <div className="cockpit-metric">
-                <span className="metric-label">待审批</span>
-                <div className="metric-value">{project.pendingApprovalCount}</div>
-              </div>
-              <div className="cockpit-metric">
-                <span className="metric-label">最新 Run</span>
-                <div className="metric-value">{project.latestRunStatus ?? "暂无"}</div>
-              </div>
-              <div className="cockpit-metric">
-                <span className="metric-label">产物数量</span>
-                <div className="metric-value">{artifacts.length}</div>
-              </div>
+            <StatusPill status={currentRun?.status ?? project.latestRunStatus ?? project.status} />
+          </div>
+          <div className="hero-rail">
+            <div className="hero-stat">
+              <div className="hero-stat-label">任务总数</div>
+              <div className="hero-stat-value">{project.taskCount}</div>
+            </div>
+            <div className="hero-stat">
+              <div className="hero-stat-label">待审批</div>
+              <div className="hero-stat-value">{project.pendingApprovalCount}</div>
+            </div>
+            <div className="hero-stat">
+              <div className="hero-stat-label">交付产物</div>
+              <div className="hero-stat-value">{artifacts.length}</div>
             </div>
           </div>
-
-          <section className="section-panel">
-            <div className="section-header">
-              <div>
-                <div className="workspace-kicker">Task Board</div>
-                <h2 className="section-title">当前任务</h2>
-              </div>
-              <div className="section-meta">任务会自然暴露出 Run 的状态，而不是把两者切开看。</div>
+          <div className="meta-row">
+            <span>客户：{project.customerName}</span>
+            <span>负责人：{project.ownerName}</span>
+            <span>目标交付：{formatDate(project.targetDeliveryAt)}</span>
+          </div>
+          {project.latestCertificate ? (
+            <div className="soft-note">
+              最近证明书：{project.latestCertificate.title} · 核验码 {project.latestCertificate.verificationCode}
             </div>
-            <div className="task-list">
-              {tasks.length === 0 ? (
-                <div className="empty-state">当前还没有任务。你可以先触发流程，也可以直接补一个人工任务。</div>
-              ) : (
-                tasks.map((task) => (
-                  <article key={task.id} className="task-item">
-                    <div className="task-head">
+          ) : (
+            <div className="soft-note">当前还没有生成证明书，流程跑通后会逐步沉淀为项目证明摘要。</div>
+          )}
+        </article>
+
+        <div className="stack-panel">
+          <section className="panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow-text">流程入口</p>
+                <h3 className="panel-title">触发交付流程</h3>
+              </div>
+            </div>
+            <p className="supporting-text">
+              当前模板为《{template.name}》，它会走过需求实现、人工审批和完成三个最小闭环节点。
+            </p>
+            <TriggerWorkflowForm projectId={project.id} returnPath={returnPath} />
+          </section>
+
+          <section className="panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow-text">审批入口</p>
+                <h3 className="panel-title">当前决策关口</h3>
+              </div>
+            </div>
+            {currentRun?.status === "waiting_approval" ? (
+              <ApprovalForm projectId={project.id} runId={currentRun.id} returnPath={returnPath} />
+            ) : (
+              <div className="empty-state">当前没有待审批执行记录，触发流程后 worker 会把结果推进到这里。</div>
+            )}
+          </section>
+        </div>
+      </section>
+
+      <section className="content-grid">
+        <div className="stack-panel">
+          <section className="panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow-text">任务摘要</p>
+                <h3 className="panel-title">当前任务板</h3>
+              </div>
+              <Link href={`/projects/${project.id}/settings`} className="ghost-link">
+                调整项目设置
+              </Link>
+            </div>
+            {tasks.length === 0 ? (
+              <div className="empty-state">当前还没有任务。你可以触发流程，也可以先手动补一个任务。</div>
+            ) : (
+              <div className="list-stack">
+                {tasks.map((task) => (
+                  <article key={task.id} className="list-card">
+                    <div className="list-card-head">
                       <div>
-                        <h3 className="task-title">{task.title}</h3>
-                        <p>{task.description}</p>
+                        <h4 className="list-card-title">{task.title}</h4>
+                        <p className="supporting-text">{task.description}</p>
                       </div>
                       <StatusPill status={task.currentRunStatus ?? task.status} />
                     </div>
-                    <div className="task-meta">
-                      OWNER {task.ownerLabel} · PRIORITY {task.priority} · RUN {task.currentRunId ?? "pending"}
+                    <div className="meta-row">
+                      <span>负责人：{task.ownerLabel}</span>
+                      <span>优先级：{task.priority}</span>
+                      <span>到期：{formatDate(task.dueAt)}</span>
                     </div>
-                    {task.latestOutputSummary ? <p style={{ marginTop: 12 }}>{task.latestOutputSummary}</p> : null}
-                    {task.blockedReason ? <p style={{ marginTop: 12 }}>阻塞原因：{task.blockedReason}</p> : null}
+                    {task.latestOutputSummary ? <p className="soft-note">{task.latestOutputSummary}</p> : null}
+                    {task.blockedReason ? <p className="soft-note">阻塞原因：{task.blockedReason}</p> : null}
+                    <div className="link-row">
+                      <Link href={`/projects/${project.id}/tasks/${task.id}`} className="inline-link">
+                        查看任务详情
+                      </Link>
+                      {task.currentRunId ? (
+                        <Link href={`/runs/${task.currentRunId}`} className="inline-link">
+                          查看执行记录
+                        </Link>
+                      ) : null}
+                    </div>
                   </article>
-                ))
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
 
-          <section className="section-panel">
-            <div className="section-header">
+          <section className="panel">
+            <div className="panel-heading">
               <div>
-                <div className="workspace-kicker">Event Timeline</div>
-                <h2 className="section-title">执行时间线</h2>
+                <p className="eyebrow-text">事件时间线</p>
+                <h3 className="panel-title">项目发生了什么</h3>
               </div>
-              <div className="section-meta">所有关键状态变化都会落到事件流里，P1 先把这个骨架钉牢。</div>
             </div>
-            <div className="timeline-list">
-              {events.map((event) => (
-                <article key={event.id} className="timeline-item">
-                  <strong>{event.summary}</strong>
-                  <p>{event.eventType}</p>
-                  <div className="timeline-meta">
-                    TRACE {event.traceId.slice(0, 8)} · {new Date(event.occurredAt).toLocaleString("zh-CN")}
-                  </div>
-                </article>
-              ))}
-            </div>
+            {events.length === 0 ? (
+              <div className="empty-state">项目还没有事件记录，流程触发和审批行为都会同步展示在这里。</div>
+            ) : (
+              <div className="timeline-list">
+                {events.map((event) => (
+                  <article key={event.id} className="timeline-item">
+                    <strong>{event.summary}</strong>
+                    <div className="timeline-meta">
+                      <span>事件类型 {event.eventType}</span>
+                      <span>追踪标识 {shortTrace(event.traceId, 10)}</span>
+                      <span>{formatDateTime(event.occurredAt)}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
         </div>
 
-        <aside className="edge-panel">
-          <div>
-            <div className="workspace-kicker">Run Control</div>
-            <h2 className="section-title">控制面</h2>
-          </div>
-
-          <div className="stack-item">
-            <strong>触发流程</strong>
-            <p>当前 P1 只内置一个简化模板，用于演示从执行到审批的最小闭环。</p>
-            <div style={{ marginTop: 14 }}>
-              <TriggerWorkflowForm projectId={project.id} />
+        <div className="stack-panel">
+          <section className="panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow-text">当前执行记录</p>
+                <h3 className="panel-title">最近一次推进</h3>
+              </div>
             </div>
-          </div>
-
-          <div className="stack-item">
-            <strong>审批面板</strong>
-            <p>如果当前 Run 已经推进到待审批，这里会显示操作入口；否则保持空闲态。</p>
-            <div style={{ marginTop: 14 }}>
-              {currentRun?.status === "waiting_approval" ? (
-                <ApprovalForm projectId={project.id} runId={currentRun.id} />
-              ) : (
-                <div className="empty-state">当前没有待审批 Run。先触发流程，或者等待 worker 把 Run 推到审批关口。</div>
-              )}
-            </div>
-          </div>
-
-          <div className="stack-item">
-            <strong>当前 Run</strong>
             {currentRun ? (
-              <>
-                <p>{currentRun.outputSummary ?? "当前还没有输出摘要。"}</p>
-                <div className="artifact-meta" style={{ marginTop: 12 }}>
-                  NODE {currentRun.nodeKey} · TRACE {currentRun.traceId.slice(0, 8)} · AGENT {currentRun.agentName}
+              <div className="compact-stack">
+                <div className="list-card subdued-card">
+                  <div className="list-card-head">
+                    <h4 className="list-card-title">{currentRun.taskTitle}</h4>
+                    <StatusPill status={currentRun.status} />
+                  </div>
+                  <div className="meta-row">
+                    <span>节点：{currentRun.nodeKey}</span>
+                    <span>执行代理：{currentRun.agentName}</span>
+                    <span>追踪标识：{shortTrace(currentRun.traceId, 10)}</span>
+                  </div>
+                  <p className="supporting-text">{currentRun.outputSummary ?? "当前还没有生成输出摘要。"}</p>
+                  <div className="link-row">
+                    <Link href={`/runs/${currentRun.id}`} className="inline-link">
+                      查看执行详情
+                    </Link>
+                  </div>
                 </div>
                 {currentRun.approval ? (
-                  <p style={{ marginTop: 12 }}>
-                    最后审批：{currentRun.approval.approverName} / {currentRun.approval.decision} / {currentRun.approval.comment}
-                  </p>
+                  <div className="soft-note">
+                    最近审批：{currentRun.approval.approverName} · {currentRun.approval.comment ?? "无附加说明"} ·{" "}
+                    {formatDateTime(currentRun.approval.decidedAt)}
+                  </div>
                 ) : null}
-              </>
+              </div>
             ) : (
-              <div className="empty-state">还没有 Run。当前 cockpit 只展示项目骨架与模板入口。</div>
+              <div className="empty-state">还没有执行记录。触发一次流程后，这里会显示最新的执行状态与输出摘要。</div>
             )}
-          </div>
+          </section>
 
-          <div className="stack-item">
-            <strong>追加人工任务</strong>
-            <TaskCreateForm projectId={project.id} />
-          </div>
-
-          <div className="stack-item">
-            <strong>产物列表</strong>
-            <div className="artifact-list" style={{ marginTop: 14 }}>
-              {artifacts.length === 0 ? (
-                <div className="empty-state">当前还没有 Artifact。worker 执行后会把摘要文件写入本地并登记到这里。</div>
-              ) : (
-                artifacts.map((artifact) => (
-                  <article key={artifact.id} className="artifact-item">
-                    <div className="artifact-head">
-                      <div>
-                        <h3 className="artifact-title">{artifact.title}</h3>
-                        <p>{artifact.artifactType}</p>
-                      </div>
-                      <StatusPill status={currentRun?.status ?? project.status} />
+          <section className="panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow-text">交付产物</p>
+                <h3 className="panel-title">已沉淀内容</h3>
+              </div>
+            </div>
+            {artifacts.length === 0 ? (
+              <div className="empty-state">当前还没有交付产物，worker 生成摘要并落库后会在这里展示。</div>
+            ) : (
+              <div className="list-stack">
+                {artifacts.map((artifact) => (
+                  <article key={artifact.id} className="list-card">
+                    <div className="list-card-head">
+                      <h4 className="list-card-title">{artifact.title}</h4>
+                      <p className="eyebrow-text">{artifact.artifactType}</p>
                     </div>
-                    <div className="artifact-meta">{artifact.storageUri}</div>
-                    <div className="artifact-meta" style={{ marginTop: 8 }}>
-                      SHA256 {artifact.sha256Digest.slice(0, 16)}...
+                    <p className="supporting-text">{artifact.storageUri}</p>
+                    <div className="timeline-meta">
+                      <span>摘要指纹 {artifact.sha256Digest.slice(0, 16)}...</span>
+                      <span>{formatDateTime(artifact.createdAt)}</span>
+                    </div>
+                    <div className="link-row">
+                      <Link href={`/artifacts/${artifact.id}`} className="inline-link">
+                        查看产物详情
+                      </Link>
                     </div>
                   </article>
-                ))
-              )}
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="panel">
+            <div className="panel-heading">
+              <div>
+                <p className="eyebrow-text">人工补单</p>
+                <h3 className="panel-title">补充任务</h3>
+              </div>
             </div>
-          </div>
-        </aside>
+            <TaskCreateForm projectId={project.id} returnPath={returnPath} />
+          </section>
+        </div>
       </section>
-    </main>
+    </AppShell>
   );
 }
-

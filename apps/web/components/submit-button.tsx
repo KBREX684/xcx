@@ -1,9 +1,10 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import type { ReactNode } from "react";
 
 type SubmitButtonProps = {
-  children: string;
+  children: ReactNode;
   pendingLabel: string;
   className?: string;
 };
@@ -16,4 +17,3 @@ export function SubmitButton({ children, pendingLabel, className }: SubmitButton
     </button>
   );
 }
-

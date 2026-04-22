@@ -1,4 +1,18 @@
-import type { ApprovalDecision, ProjectStatus, RunStatus, TaskPriority, TaskStatus } from "./status";
+import type {
+  AgentStatus,
+  ApprovalDecision,
+  ApprovalMode,
+  CertificateStatus,
+  ExecutorType,
+  NotificationChannel,
+  ObjectStorageProvider,
+  ProjectStatus,
+  RunStatus,
+  TaskPriority,
+  TaskStatus,
+  ThemePreference,
+  WorkflowTemplateStatus
+} from "./status";
 
 export interface WorkflowTemplateNode {
   key: string;
@@ -28,6 +42,24 @@ export interface ProjectSummary {
   lastEventAt: string | null;
 }
 
+export interface CertificateSummary {
+  id: string;
+  projectId: string;
+  projectName: string;
+  title: string;
+  status: CertificateStatus;
+  verificationCode: string;
+  generatedAt: string;
+  updatedAt: string;
+}
+
+export interface ProjectDetail extends ProjectSummary {
+  ownerName: string;
+  currentCertificateId: string | null;
+  latestCertificate: CertificateSummary | null;
+  latestEventSummary: string | null;
+}
+
 export interface TaskBoardItem {
   id: string;
   title: string;
@@ -42,6 +74,26 @@ export interface TaskBoardItem {
   latestOutputSummary: string | null;
 }
 
+export interface RunListItem {
+  id: string;
+  status: RunStatus;
+  agentName: string;
+  taskTitle: string;
+  outputSummary: string | null;
+  traceId: string;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+}
+
+export interface TaskDetail extends TaskBoardItem {
+  projectId: string;
+  sourceTemplateName: string | null;
+  createdAt: string;
+  updatedAt: string;
+  runs: RunListItem[];
+}
+
 export interface ArtifactListItem {
   id: string;
   title: string;
@@ -50,6 +102,15 @@ export interface ArtifactListItem {
   mimeType: string;
   sha256Digest: string;
   createdAt: string;
+}
+
+export interface ArtifactDetail extends ArtifactListItem {
+  projectId: string;
+  projectName: string;
+  runId: string;
+  runStatus: RunStatus | null;
+  outputSummary: string | null;
+  metadata: Record<string, unknown> | null;
 }
 
 export interface EventTimelineItem {
@@ -71,14 +132,49 @@ export interface ApprovalRecord {
   decidedAt: string;
 }
 
+export interface ApprovalQueueItem {
+  runId: string;
+  taskId: string;
+  projectId: string;
+  projectName: string;
+  projectCode: string;
+  taskTitle: string;
+  agentName: string;
+  requestedAt: string;
+  outputSummary: string | null;
+  traceId: string;
+}
+
+export interface ApprovalHistoryItem {
+  runId: string;
+  taskId: string;
+  projectId: string;
+  projectName: string;
+  taskTitle: string;
+  decision: ApprovalDecision;
+  comment: string | null;
+  approverName: string;
+  decidedAt: string;
+  traceId: string;
+}
+
+export interface ApprovalCenterData {
+  pending: ApprovalQueueItem[];
+  history: ApprovalHistoryItem[];
+}
+
 export interface RunDetail {
   id: string;
   projectId: string;
+  projectName: string;
+  projectCode: string;
   taskId: string;
+  taskTitle: string;
   nodeKey: string;
   agentName: string;
   status: RunStatus;
   traceId: string;
+  inputPayload: string | null;
   outputSummary: string | null;
   errorMessage: string | null;
   startedAt: string | null;
@@ -87,8 +183,67 @@ export interface RunDetail {
   approval: ApprovalRecord | null;
 }
 
+export interface AgentSummary {
+  id: string;
+  name: string;
+  roleName: string;
+  adapterType: string;
+  status: AgentStatus;
+  healthStatus: string;
+  description: string;
+  lastSeenAt: string | null;
+  taskCount: number;
+  runCount: number;
+}
+
+export interface AgentDetail extends AgentSummary {
+  tags: string[];
+  recentRuns: RunListItem[];
+  ownedTasks: TaskBoardItem[];
+}
+
+export interface WorkflowTemplateListItem {
+  id: string;
+  name: string;
+  scenarioType: string;
+  version: string;
+  triggerType: string;
+  status: WorkflowTemplateStatus;
+  nodeCount: number;
+  usageCount: number;
+  lastTriggeredAt: string | null;
+}
+
+export interface WorkflowTemplateDetail extends WorkflowTemplateListItem {
+  nodes: WorkflowTemplateNode[];
+}
+
+export interface IntegrationConfigView {
+  workspaceId: string;
+  defaultExecutorType: ExecutorType;
+  objectStorageProvider: ObjectStorageProvider;
+  notificationChannel: NotificationChannel;
+  callbackBaseUrl: string | null;
+  agentEndpoint: string | null;
+  approvalMode: ApprovalMode;
+  updatedAt: string;
+}
+
+export interface DashboardSummary {
+  workspaceName: string;
+  totalProjectCount: number;
+  activeProjectCount: number;
+  pendingApprovalCount: number;
+  runningExecutionCount: number;
+  activeAgentCount: number;
+  spotlightProjects: ProjectSummary[];
+  pendingApprovals: ApprovalQueueItem[];
+  recentEvents: EventTimelineItem[];
+  certificateHighlights: CertificateSummary[];
+}
+
 export interface ProjectCockpit {
-  project: ProjectSummary;
+  project: ProjectDetail;
   template: WorkflowTemplateSummary;
   tasks: TaskBoardItem[];
   currentRun: RunDetail | null;
@@ -107,9 +262,25 @@ export interface CreateTaskInput {
   priority?: TaskPriority;
 }
 
+export interface ProjectSettingsInput {
+  name: string;
+  customerName: string;
+  targetDeliveryAt?: string | null;
+  status?: ProjectStatus;
+}
+
 export interface ApprovalDecisionInput {
   approverMemberId?: string;
   comment?: string;
+}
+
+export interface UpdateIntegrationConfigInput {
+  defaultExecutorType: ExecutorType;
+  objectStorageProvider: ObjectStorageProvider;
+  notificationChannel: NotificationChannel;
+  callbackBaseUrl?: string | null;
+  agentEndpoint?: string | null;
+  approvalMode: ApprovalMode;
 }
 
 export interface MiniAppApprovalItem {
@@ -137,3 +308,7 @@ export interface MiniAppRunSummary {
   traceId: string;
 }
 
+export interface ThemeState {
+  preference: ThemePreference;
+  resolved: Exclude<ThemePreference, "system">;
+}

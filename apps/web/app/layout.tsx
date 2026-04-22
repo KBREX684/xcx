@@ -1,55 +1,44 @@
 import type { CSSProperties, ReactNode } from "react";
-import { Bricolage_Grotesque, IBM_Plex_Mono, Newsreader } from "next/font/google";
-import { controlPlaneTheme } from "@agent-control-plane/ui";
+import { controlPlaneTypography } from "@agent-control-plane/ui";
 import "./globals.css";
 
-const displayFont = Newsreader({
-  subsets: ["latin"],
-  variable: "--font-display",
-  weight: ["400", "600"]
-});
-
-const bodyFont = Bricolage_Grotesque({
-  subsets: ["latin"],
-  variable: "--font-body",
-  weight: ["400", "500", "600", "700"]
-});
-
-const monoFont = IBM_Plex_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-  weight: ["400", "500"]
-});
-
-const themeVariables: CSSProperties = {
-  ["--canvas" as string]: controlPlaneTheme.palette.canvas,
-  ["--paper" as string]: controlPlaneTheme.palette.paper,
-  ["--ink" as string]: controlPlaneTheme.palette.ink,
-  ["--charcoal" as string]: controlPlaneTheme.palette.charcoal,
-  ["--steel" as string]: controlPlaneTheme.palette.steel,
-  ["--copper" as string]: controlPlaneTheme.palette.copper,
-  ["--moss" as string]: controlPlaneTheme.palette.moss,
-  ["--signal" as string]: controlPlaneTheme.palette.signal,
-  ["--border" as string]: controlPlaneTheme.palette.border,
-  ["--haze" as string]: controlPlaneTheme.palette.haze,
-  ["--halo-gradient" as string]: controlPlaneTheme.gradients.halo,
-  ["--panel-gradient" as string]: controlPlaneTheme.gradients.panel,
-  ["--soft-shadow" as string]: controlPlaneTheme.shadows.soft,
-  ["--line-shadow" as string]: controlPlaneTheme.shadows.line
+const rootVariables: CSSProperties = {
+  ["--font-display" as string]: controlPlaneTypography.display,
+  ["--font-body" as string]: controlPlaneTypography.body,
+  ["--font-mono" as string]: controlPlaneTypography.mono
 };
 
+const themeBootScript = `
+(() => {
+  const key = "acp-theme-preference";
+  const root = document.documentElement;
+  try {
+    const preference = localStorage.getItem(key) || "system";
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const resolved = preference === "system" ? (media.matches ? "dark" : "light") : preference;
+    root.dataset.themePreference = preference;
+    root.dataset.theme = resolved;
+    root.style.colorScheme = resolved;
+  } catch {
+    root.dataset.themePreference = "system";
+    root.dataset.theme = "light";
+    root.style.colorScheme = "light";
+  }
+})();
+`;
+
 export const metadata = {
-  title: "Agent 指挥台 P1",
-  description: "Agent 指挥台 MVP P1 控制台"
+  title: "智能代理指挥台",
+  description: "全中文、双主题、低疲劳的智能代理控制台"
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="zh-CN" style={themeVariables}>
-      <body className={`${displayFont.variable} ${bodyFont.variable} ${monoFont.variable}`}>
-        {children}
-      </body>
+    <html lang="zh-CN" suppressHydrationWarning style={rootVariables}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }
-
