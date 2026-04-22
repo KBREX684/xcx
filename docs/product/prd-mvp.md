@@ -185,17 +185,26 @@
 
 ## 8.1 Web 控制台
 
-- 工作区首页
-- 项目列表页
-- 项目工作台
-- 任务看板/列表
-- 任务详情页
-- Agent 列表与详情页
-- 工作流模板页
-- Run 详情页
-- 审批中心
-- 证明书中心
-- 系统设置与接入配置
+详见：[Web 页面地图](./web-page-map.md)
+
+### P1 当前已落地页面
+
+- `/` 工作区首页
+- `/projects/[projectId]` 项目指挥台
+
+### P2 应补页面
+
+- `/projects` 项目列表页
+- `/projects/[projectId]/tasks/[taskId]` 任务详情页
+- `/runs/[runId]` Run 详情页
+- `/approvals` 审批中心
+- `/artifacts/[artifactId]` Artifact 详情页
+- `/agents` Agent 列表页
+- `/agents/[agentId]` Agent 详情页
+- `/workflows` 工作流模板页
+- `/workflows/[templateId]` 工作流模板详情页
+- `/certificates` 证明书中心
+- `/settings/integrations` 系统设置与接入配置
 
 ## 8.2 小程序端
 

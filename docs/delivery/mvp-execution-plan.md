@@ -31,8 +31,9 @@
 - 完成文档、信息架构和工程初始化
 - 完成核心领域模型：`Workspace / Project / Agent / Task / Run / Artifact / Approval / Certificate`
 - 完成 Monorepo 基础结构与共享类型包
-- 完成 PostgreSQL、Redis、对象存储、本地开发环境搭建
+- 完成本地 `SQLite + 文件产物存储 + 数据库轮询 worker` 开发环境搭建
 - 跑通最小 API、Web、Worker 启动链路
+- 固定 P1 Web 页面范围为 `/` 与 `/projects/[projectId]`
 
 交付物：
 
@@ -40,6 +41,7 @@
 - 数据库初版 schema 与 migration
 - 核心模块脚手架
 - 接口规范与领域对象定义
+- P1 Web 页面地图与后续页面补齐边界
 
 完成标准：
 
@@ -66,6 +68,20 @@
 - 可用的 Web 控制台核心业务模块
 - 可用的小程序轻指挥端主路径
 - 首版过程证明书生成与验证页
+
+P2 Web 页面补齐清单：
+
+- `/projects` 项目列表页
+- `/projects/[projectId]/tasks/[taskId]` 任务详情页
+- `/runs/[runId]` Run 详情页
+- `/approvals` 审批中心
+- `/artifacts/[artifactId]` Artifact 详情页
+- `/agents` Agent 列表页
+- `/agents/[agentId]` Agent 详情页
+- `/workflows` 工作流模板页
+- `/workflows/[templateId]` 工作流模板详情页
+- `/certificates` 证明书中心
+- `/settings/integrations` 接入配置页
 
 完成标准：
 

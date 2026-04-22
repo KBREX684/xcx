@@ -13,6 +13,11 @@ P1 目标是从零搭起一个可本地运行的 `web + api + worker` monorepo�
 - 本地 `SQLite + 文件产物` 存储
 - `huashu-design` 风格的关键控制面界面
 
+文档入口：
+
+- [项目文档总览](./docs/README.md)
+- [Web 页面地图](./docs/product/web-page-map.md)
+
 ## 快速开始
 
 ```bash
@@ -70,6 +75,13 @@ prisma/
   - MCP Relay
   - 真实 OpenAPI Agent 接入
   - 完整鉴权与权限体系
+
+## 当前 Web 页面
+
+- `/` 工作区首页：总览、项目入口、创建项目
+- `/projects/[projectId]` 项目指挥台：任务、Run、审批、Artifact、事件时间线
+
+P2 待补页面清单见：[docs/product/web-page-map.md](./docs/product/web-page-map.md)
 
 ## 说明
 
