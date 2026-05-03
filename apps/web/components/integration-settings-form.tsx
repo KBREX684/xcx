@@ -9,15 +9,24 @@ export function IntegrationSettingsForm({ config }: { config: IntegrationConfigV
 
       <label className="field-label">
         默认执行器
-        <select className="field-control" name="defaultExecutorType" defaultValue={config.defaultExecutorType}>
+        <select
+          className="field-control"
+          name="defaultExecutorType"
+          defaultValue={config.defaultExecutorType}
+        >
+          <option value="openapi">OpenAPI 执行器</option>
+          <option value="mcp-relay">MCP Relay</option>
           <option value="mock">本地模拟执行器</option>
-          <option value="openapi">开放接口执行器</option>
         </select>
       </label>
 
       <label className="field-label">
         产物存储
-        <select className="field-control" name="objectStorageProvider" defaultValue={config.objectStorageProvider}>
+        <select
+          className="field-control"
+          name="objectStorageProvider"
+          defaultValue={config.objectStorageProvider}
+        >
           <option value="local-file">本地文件存储</option>
           <option value="s3-compatible">S3 兼容对象存储</option>
         </select>
@@ -25,7 +34,11 @@ export function IntegrationSettingsForm({ config }: { config: IntegrationConfigV
 
       <label className="field-label">
         通知通道
-        <select className="field-control" name="notificationChannel" defaultValue={config.notificationChannel}>
+        <select
+          className="field-control"
+          name="notificationChannel"
+          defaultValue={config.notificationChannel}
+        >
           <option value="none">暂不通知</option>
           <option value="wechat">微信通知</option>
           <option value="feishu">飞书通知</option>
@@ -42,14 +55,35 @@ export function IntegrationSettingsForm({ config }: { config: IntegrationConfigV
       </label>
 
       <label className="field-label">
-        执行代理接入地址
-        <input className="field-control" name="agentEndpoint" defaultValue={config.agentEndpoint ?? ""} />
+        OpenAPI 地址
+        <input
+          className="field-control"
+          name="openapiBaseUrl"
+          defaultValue={config.openapiBaseUrl ?? ""}
+        />
       </label>
 
       <label className="field-label">
-        回调基础地址
-        <input className="field-control" name="callbackBaseUrl" defaultValue={config.callbackBaseUrl ?? ""} />
+        MCP Relay 地址
+        <input
+          className="field-control"
+          name="mcpRelayBaseUrl"
+          defaultValue={config.mcpRelayBaseUrl ?? ""}
+        />
       </label>
+
+      <label className="field-label">
+        回调基地址
+        <input
+          className="field-control"
+          name="callbackBaseUrl"
+          defaultValue={config.callbackBaseUrl ?? ""}
+        />
+      </label>
+
+      <div className="soft-note">
+        健康检查：OpenAPI {config.openapiHealthStatus} · MCP Relay {config.mcpRelayHealthStatus}
+      </div>
 
       <SubmitButton pendingLabel="正在保存..." className="action-button">
         保存接入配置

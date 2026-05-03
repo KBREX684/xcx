@@ -6,12 +6,17 @@ export default defineConfig({
     globals: true,
     include: [
       "packages/domain/src/**/*.test.ts",
-      "apps/api/test/**/*.test.ts"
+      "packages/config/src/**/*.test.ts",
+      "apps/api/src/**/*.test.ts",
+      "apps/api/test/**/*.test.ts",
+      "apps/adapters/**/*.test.ts",
+      "apps/web/lib/**/*.test.ts",
+      "apps/mobile/src/**/*.test.ts",
+      "scripts/**/*.test.ts",
     ],
     coverage: {
       provider: "v8",
-      reporter: ["text", "html"]
-    }
-  }
+      reporter: ["text", "html"],
+    },
+  },
 });
-

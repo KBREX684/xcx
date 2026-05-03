@@ -1,15 +1,20 @@
-import { applyApprovalDecision, isApprovalPending, isRunTerminal, taskStatusOnRunAwaitingApproval } from "./transitions";
+import {
+  applyApprovalDecision,
+  isApprovalPending,
+  isRunTerminal,
+  taskStatusOnApprovalRequested,
+} from "./transitions";
 
 describe("P1 status transitions", () => {
   it("moves task to waiting approval when run reaches approval gate", () => {
-    expect(taskStatusOnRunAwaitingApproval()).toBe("waiting_approval");
+    expect(taskStatusOnApprovalRequested()).toBe("waiting_approval");
   });
 
   it("completes run and task when approval passes", () => {
     expect(applyApprovalDecision("approved")).toEqual({
       nextRunStatus: "succeeded",
       nextTaskStatus: "completed",
-      terminal: true
+      terminal: true,
     });
   });
 
@@ -17,7 +22,7 @@ describe("P1 status transitions", () => {
     expect(applyApprovalDecision("rejected")).toEqual({
       nextRunStatus: "failed",
       nextTaskStatus: "in_progress",
-      terminal: true
+      terminal: true,
     });
   });
 
@@ -28,4 +33,3 @@ describe("P1 status transitions", () => {
     expect(isRunTerminal("waiting_approval")).toBe(false);
   });
 });
-

@@ -1,0 +1,144 @@
+/*
+ * Design tokens — 80% Claude DNA / 20% Linear DNA.
+ *
+ * 调色板取自 Claude 的"温暖米白 + 木质陶土"基底，并保留极小幅度的 Linear
+ * 微抬升与精准描边以维持工程感。色值参考客户提供的小程序 UI 组件参考图：
+ *   - 画布: 接近 #faf6ee 的奶油米
+ *   - 表面: 比画布略亮的 ivory
+ *   - 强调: 木质陶土 #b08968 / 深胡桃 #8a6a4f
+ *   - 文本: 深石墨而非纯黑，避免视觉硬感
+ *
+ * 任何颜色调整都集中在本文件，避免组件内 inline 漂移。
+ */
+
+:root {
+  /* —— 基础色域 —— */
+  --bg-canvas: #faf6ee; /* 主画布：奶油米 */
+  --bg-surface: #fffdf8; /* 卡片表面：暖白 */
+  --bg-subtle: #f1ebe0; /* 次级面板：淡陶土 */
+  --bg-sunken: #ece5d6; /* 凹陷面、code 背景 */
+  --line-hairline: rgba(60, 42, 28, 0.09); /* 极细边：暖灰，而非冷灰 */
+  --line-soft: rgba(60, 42, 28, 0.06);
+  --line-strong: rgba(60, 42, 28, 0.16);
+
+  /* —— 文本 —— */
+  --fg-primary: #2a2520; /* 深石墨棕 */
+  --fg-secondary: #5a5147;
+  --fg-muted: #8b8275;
+
+  /* —— Shell 区域 —— */
+  --canvas: var(--bg-canvas);
+  --canvas-strong: var(--bg-subtle);
+  --sidebar-bg: #f1ebe0;
+  --topbar-bg: rgba(250, 246, 238, 0.86);
+  --panel-bg: var(--bg-surface);
+  --panel-bg-strong: var(--bg-subtle);
+  --panel-muted: #ece5d6;
+  --card-bg: var(--bg-surface);
+  --code-bg: var(--bg-sunken);
+  --halo-a: rgba(176, 137, 104, 0.08); /* 主光晕：陶土 */
+  --halo-b: rgba(60, 42, 28, 0.04);
+
+  /* —— 品牌 —— */
+  --brand-ink: #2a2520;
+  --brand-gold: #b08968; /* 与参考图主调一致 */
+  --brand-core-ink: #2a2520;
+  --brand-gold-soft: rgba(176, 137, 104, 0.16);
+  --brand-gold-line: rgba(176, 137, 104, 0.74);
+
+  /* —— 文本别名（向后兼容旧组件） —— */
+  --text: var(--fg-primary);
+  --text-soft: var(--fg-secondary);
+  --text-muted: var(--fg-muted);
+  --muted: var(--text-muted);
+
+  /* —— 强调色：Claude 温暖陶土主导，保留 Linear 紫蓝作为信息次级 —— */
+  --accent: #8a6a4f; /* 主强调：深胡桃 */
+  --accent-strong: #6f5440;
+  --accent-soft: rgba(176, 137, 104, 0.14);
+  --accent-contrast: #fffdf8;
+  --info: #4f5bb8; /* Linear 紫蓝：仅用于信息类点缀 */
+  --info-soft: rgba(79, 91, 184, 0.12);
+
+  --secondary: var(--fg-secondary);
+  --secondary-soft: rgba(90, 81, 71, 0.1);
+
+  /* —— 状态色（保持温和，避免荧光感） —— */
+  --success: #4d7c4f;
+  --success-soft: rgba(77, 124, 79, 0.12);
+  --warning: #b87a00;
+  --warning-soft: rgba(184, 122, 0, 0.14);
+  --danger: #b3503a;
+  --danger-soft: rgba(179, 80, 58, 0.12);
+  --neutral-soft: rgba(60, 42, 28, 0.05);
+
+  /* —— 描边、阴影 —— */
+  --border: var(--line-hairline);
+  --border-strong: var(--line-strong);
+  --input-border: rgba(60, 42, 28, 0.16);
+  --focus-ring: rgba(138, 106, 79, 0.32);
+  /* Linear-style micro shadow：极薄 + 单层羽化 */
+  --shadow-sm: 0 1px 0 rgba(60, 42, 28, 0.04);
+  --shadow-md: 0 6px 24px -10px rgba(60, 42, 28, 0.18);
+  --shadow-lg: 0 18px 48px -20px rgba(60, 42, 28, 0.24);
+
+  /* —— 圆角：保留 Linear 的精准 —— */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+}
+
+/* 深色：保留同一调性 —— 暖煤+陶土，而不是冷蓝灰 */
+:root[data-theme="dark"] {
+  --bg-canvas: #1a1612;
+  --bg-surface: #221d18;
+  --bg-subtle: #2a241e;
+  --bg-sunken: #14110d;
+  --line-hairline: rgba(244, 232, 216, 0.08);
+  --line-soft: rgba(244, 232, 216, 0.05);
+  --line-strong: rgba(244, 232, 216, 0.16);
+
+  --fg-primary: #f4e8d8;
+  --fg-secondary: #b9ad9a;
+  --fg-muted: #807466;
+
+  --canvas: var(--bg-canvas);
+  --canvas-strong: var(--bg-subtle);
+  --sidebar-bg: #1f1a15;
+  --topbar-bg: rgba(26, 22, 18, 0.86);
+  --panel-bg: var(--bg-surface);
+  --panel-muted: #2a241e;
+  --card-bg: var(--bg-surface);
+  --code-bg: var(--bg-sunken);
+  --halo-a: rgba(196, 154, 118, 0.08);
+  --halo-b: rgba(255, 255, 255, 0.02);
+
+  --brand-ink: #f4e8d8;
+  --brand-gold: #c49a76;
+  --brand-gold-soft: rgba(196, 154, 118, 0.18);
+  --brand-gold-line: rgba(196, 154, 118, 0.74);
+
+  --accent: #c49a76;
+  --accent-strong: #d3aa86;
+  --accent-soft: rgba(196, 154, 118, 0.16);
+  --accent-contrast: #1a1612;
+  --info: #8a93d8;
+  --info-soft: rgba(138, 147, 216, 0.16);
+
+  --success: #79b27c;
+  --success-soft: rgba(121, 178, 124, 0.14);
+  --warning: #d59a3a;
+  --warning-soft: rgba(213, 154, 58, 0.16);
+  --danger: #d97a64;
+  --danger-soft: rgba(217, 122, 100, 0.14);
+  --neutral-soft: rgba(244, 232, 216, 0.05);
+
+  --border: var(--line-hairline);
+  --border-strong: var(--line-strong);
+  --input-border: rgba(244, 232, 216, 0.18);
+  --focus-ring: rgba(196, 154, 118, 0.36);
+  --shadow-sm: 0 1px 0 rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 8px 28px -12px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 22px 56px -22px rgba(0, 0, 0, 0.65);
+}

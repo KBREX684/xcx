@@ -1,114 +1,92 @@
-# 智能代理指挥台 · MVP P2
+# 蜂聚合 · Web + Mobile Clients
 
-当前版本已经从 P1 的最小闭环，推进到 P2 的可运营 Web 控制台。现在仓库里包含：
+面向中国 OPC（一人公司/超轻团队）的 Agent 指挥台客户端工程。当前分支聚焦同步
+Web 控制台与 Android 移动控制面，以及二者共享的领域模型、设计系统和前端配置。
 
-- `Next.js` Web 控制台
-- `NestJS` API
-- 独立 `worker` 轮询执行器
-- `Prisma` 领域建模
-- 本地 `SQLite + 文件产物` 存储
-- `huashu-design + ui-ux-pro-max` 驱动的全中文双主题控制面
+> 后端控制面、Worker、Prisma 迁移、小程序和 Agent Adapter 不属于本次发布包范围。
+> Web 与 Mobile 默认通过环境变量连接外部 API 服务。
 
-当前已经打通的主链路：
+## 当前内容
 
-`Project -> Task -> Run -> Approval -> Artifact -> Event Timeline`
-
-P2 进一步补齐了：
-
-- 工作台总览
-- 项目总览与项目设置
-- 审批中心
-- 执行代理列表与详情
-- 流程模板列表与详情
-- 证明书中心
-- 接入配置页
-- 任务、执行记录、交付产物下钻详情
-- `system / light / dark` 三态主题切换
-
-文档入口：
-
-- [项目文档总览](./docs/README.md)
-- [Web 页面地图](./docs/product/web-page-map.md)
-- [MVP 执行计划](./docs/delivery/mvp-execution-plan.md)
+```text
+apps/
+  web/        Next.js 16 Web 控制台
+  mobile/     React 19 + React Native 0.83 + Expo 55 Android 客户端
+packages/
+  domain/     状态枚举、DTO、移动端 schema、证明/签名类型
+  ui/         Web 设计 token 与通用 UI primitive
+  mobile-ui/  移动端设计 token 与 React Native 组件
+  config/     Web/API URL 与客户端 bootstrap 配置
+tests/
+  web/        Playwright Web 回归与可访问性用例
+```
 
 ## 快速开始
 
 ```bash
 npm install
-npm run setup
-npm run dev
+
+# Web 控制台
+npm run dev:web
+
+# Android 移动端
+npm run dev:mobile
 ```
 
-默认地址：
+默认开发地址：
 
 - Web：`http://localhost:3000`
-- API：`http://localhost:3101`
-- Health：`http://localhost:3101/health`
+- Web API base：`NEXT_PUBLIC_API_URL`，未设置时使用 `http://localhost:3101`
+- Mobile API base：`EXPO_PUBLIC_API_BASE_URL`，未设置时使用 Android 模拟器地址 `http://10.0.2.2:3101`
 
 ## 常用命令
 
 ```bash
-npm run setup        # 生成 Prisma Client + 初始化 SQLite + seed
-npm run dev          # 同时启动 web/api/worker
-npm run build        # 构建并检查所有工作区
-npm run test         # 运行单元测试和集成测试
-npm run db:reset     # 重建本地数据库并重新 seed
+npm run build:web             # Next.js 生产构建
+npm run build:shared          # 共享包类型检查
+npm run typecheck:mobile      # 移动端 TypeScript 检查
+npm run test:mobile           # 移动端单元测试
+npm run test:web              # Web Playwright 用例
+npm run test:a11y             # Web axe 可访问性扫描
+npm run check:mobile-release  # Android 提审门禁
 ```
 
-## 目录结构
+## 环境变量
 
-```text
-apps/
-  api/       NestJS 控制平面 API
-  web/       Next.js Web 控制台
-  worker/    本地轮询 worker + mock executor
-packages/
-  domain/    状态枚举、DTO、端口接口、模板常量
-  ui/        主题令牌与字体配置
-  config/    端口与 bootstrap 配置
-prisma/
-  schema.prisma
-  migrations/0001_init/migration.sql
+复制 `.env.example` 后按本地环境调整：
+
+```bash
+NEXT_PUBLIC_API_URL="http://localhost:3101"
+EXPO_PUBLIC_API_BASE_URL="http://10.0.2.2:3101"
+EXPO_PUBLIC_PRIVACY_VERSION="2026-04-26"
+EXPO_PUBLIC_CHANNEL="yingyongbao"
 ```
 
-## 当前边界
+Release Android 构建必须使用 HTTPS API：
 
-- 已做：
-  - 项目创建与项目设置
-  - 任务创建与任务详情
-  - 模板触发与执行记录详情
-  - worker 执行
-  - 待审批 Run
-  - 审批通过/驳回
-  - 产物登记与产物详情
-  - 事件时间线
-  - 执行代理、流程模板、证明书、接入配置页面
-  - 全中文明暗主题控制台
-- 未做：
-  - 微信小程序代码
-  - 证明书详情导出
-  - MCP Relay
-  - 真实开放接口执行器接入
-  - 完整鉴权与权限体系
+```bash
+ACP_MOBILE_RELEASE=1
+EXPO_PUBLIC_API_BASE_URL="https://api.example.com"
+```
 
-## 当前 Web 页面
+正式上架签名通过 `ACP_ANDROID_KEYSTORE_FILE`、`ACP_ANDROID_KEYSTORE_PASSWORD`、
+`ACP_ANDROID_KEY_ALIAS`、`ACP_ANDROID_KEY_PASSWORD` 注入。仓库不会提交任何真实 keystore、
+debug keystore、构建产物或本地机器配置。
 
-- `/` 工作台总览
-- `/projects` 项目总览
-- `/projects/[projectId]` 项目指挥台
-- `/projects/[projectId]/tasks/[taskId]` 任务详情页
-- `/projects/[projectId]/settings` 项目设置页
-- `/runs/[runId]` 执行记录详情页
-- `/artifacts/[artifactId]` 交付产物详情页
-- `/approvals` 审批中心
-- `/agents` 执行代理列表页
-- `/agents/[agentId]` 执行代理详情页
-- `/workflows` 流程模板页
-- `/workflows/[templateId]` 流程模板详情页
-- `/certificates` 证明书中心
-- `/settings/integrations` 接入配置页
+## 质量基线
 
-## 说明
+本发布包整理时采用以下门禁作为最低验收：
 
-- 当前机器上的 Prisma Schema Engine 对 `db push` 不稳定，所以仓库保留 `Prisma schema + Client`，数据库初始化改为执行仓库内的首版 SQL migration。
-- 这不影响当前业务代码结构，后续仍可切回标准 Prisma migration 流程。
+- `npm run build -w @agent-control-plane/web`
+- `npm run typecheck:mobile`
+- `npm run test:mobile`
+- `npm run build -w @agent-control-plane/domain`
+- `npm run build -w @agent-control-plane/ui`
+- `npm run build -w @agent-control-plane/mobile-ui`
+- `npm run build -w @agent-control-plane/config`
+
+## 边界说明
+
+- Web 与 Mobile 是控制面客户端，不在本仓库分支内启动后端服务。
+- 所有登录、审批、项目、Agent、证据、证书和移动设备接口均由外部 API 提供。
+- Android 原生工程已纳入版本管理，便于应用市场合规审查和 release 构建复现。

@@ -1,74 +1,105 @@
+import { getApiBaseUrl } from "@agent-control-plane/config";
+import { redirect } from "next/navigation";
 import { AppShell } from "../../components/app-shell";
+import { ProfileSecurityPanel } from "../../components/profile-security-panel";
+import { getSessionToken } from "../../lib/auth";
 
-export default function ProfilePage() {
+type MeResponse = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  requirePasswordReset: boolean;
+  workspace: {
+    id: string;
+    name: string;
+    slug: string;
+    planType: string;
+    status: string;
+  };
+};
+
+type SessionResponse = {
+  id: string;
+  jti: string;
+  createdAt: string;
+  expiresAt: string;
+  revokedAt: string | null;
+  active: boolean;
+};
+
+type LoginHistoryResponse = {
+  id: string;
+  occurredAt: string;
+  method: string;
+};
+
+async function apiGet<T>(path: string): Promise<T | null> {
+  const token = await getSessionToken();
+  if (!token) {
+    return null;
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+
+  if (response.status === 401) {
+    redirect("/logout?reason=session_expired");
+  }
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return (await response.json()) as T;
+}
+
+export default async function ProfilePage() {
+  const [me, sessions, loginHistory] = await Promise.all([
+    apiGet<MeResponse>("/auth/me"),
+    apiGet<SessionResponse[]>("/auth/sessions"),
+    apiGet<LoginHistoryResponse[]>("/auth/login-history"),
+  ]);
+
   return (
     <AppShell
       activeNav="none"
       title="个人资料"
-      description="查看当前账号、工作空间与偏好设置入口。"
+      description="查看当前账号、所属工作区与安全状态。"
       breadcrumbs={[{ label: "个人资料" }]}
+      profileName={me?.name}
+      profileEmail={me?.email}
+      workspaceName={me?.workspace.name}
     >
       <section className="metrics-grid">
         <article className="metric-card">
-          <div className="metric-label">账号名称</div>
-          <div className="metric-value metric-value-text">KBREX</div>
-          <p className="metric-note">主账号，拥有工作区管理权限</p>
+          <div className="metric-label">账号</div>
+          <div className="metric-value metric-value-text">{me?.name ?? "暂不可用"}</div>
+          <p className="metric-note">{me?.email ?? "无法读取当前会话。"}</p>
         </article>
         <article className="metric-card">
-          <div className="metric-label">邮箱</div>
-          <div className="metric-value metric-value-text">kbrex@example.com</div>
-          <p className="metric-note">用于登录、通知与审批提醒</p>
-        </article>
-        <article className="metric-card">
-          <div className="metric-label">当前工作空间</div>
-          <div className="metric-value metric-value-text">KBREX Studio</div>
-          <p className="metric-note">单工作区开发模式（P2）</p>
+          <div className="metric-label">工作区</div>
+          <div className="metric-value metric-value-text">{me?.workspace.name ?? "暂不可用"}</div>
+          <p className="metric-note">{me?.workspace.slug ?? "未关联工作区。"}</p>
         </article>
         <article className="metric-card">
           <div className="metric-label">角色</div>
-          <div className="metric-value metric-value-text">管理员</div>
-          <p className="metric-note">可管理项目、审批与集成配置</p>
+          <div className="metric-value metric-value-text">{me?.role ?? "未知"}</div>
+          <p className="metric-note">所有工作区数据均按 JWT 中的工作区上下文解析。</p>
+        </article>
+        <article className="metric-card">
+          <div className="metric-label">安全</div>
+          <div className="metric-value metric-value-text">
+            {me?.requirePasswordReset ? "需要重置密码" : "正常"}
+          </div>
+          <p className="metric-note">退出登录会立即吊销当前服务端会话。</p>
         </article>
       </section>
-
-      <section className="content-grid">
-        <div className="stack-panel">
-          <section className="panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow-text">账户信息</p>
-                <h3 className="panel-title">基础身份资料</h3>
-              </div>
-            </div>
-            <div className="meta-column">
-              <span>用户名：KBREX</span>
-              <span>邮箱：kbrex@example.com</span>
-              <span>工作空间：KBREX Studio</span>
-              <span>角色：工作空间管理员</span>
-            </div>
-            <div className="soft-note">
-              P2 先稳定资料展示与偏好入口，后续再接入可编辑资料、头像上传和通知策略细分。
-            </div>
-          </section>
-        </div>
-
-        <div className="stack-panel">
-          <section className="panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow-text">偏好设置</p>
-                <h3 className="panel-title">主题与通知</h3>
-              </div>
-            </div>
-            <div className="detail-block">
-              <p>主题偏好：支持浅色 / 深色切换，跟随系统作为首次默认策略。</p>
-            </div>
-            <div className="detail-block">
-              <p>通知偏好：审批提醒、Agent 状态、系统通知统一收敛到消息中心。</p>
-            </div>
-          </section>
-        </div>
-      </section>
+      <ProfileSecurityPanel sessions={sessions ?? []} loginHistory={loginHistory ?? []} />
     </AppShell>
   );
 }

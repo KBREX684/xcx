@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { AppShell } from "../../../../components/app-shell";
 import { ProjectSettingsForm } from "../../../../components/project-settings-form";
 import { StatusPill } from "../../../../components/status-pill";
-import { getProject } from "../../../../lib/api";
+import { getProject, getTeams } from "../../../../lib/api";
 import { formatDate, formatDateTime } from "../../../../lib/format";
 
 type ProjectSettingsPageProps = {
@@ -13,7 +13,7 @@ type ProjectSettingsPageProps = {
 
 export default async function ProjectSettingsPage({ params }: ProjectSettingsPageProps) {
   const { projectId } = await params;
-  const project = await getProject(projectId).catch(() => null);
+  const [project, teams] = await Promise.all([getProject(projectId).catch(() => null), getTeams()]);
 
   if (!project) {
     notFound();
@@ -27,7 +27,7 @@ export default async function ProjectSettingsPage({ params }: ProjectSettingsPag
       breadcrumbs={[
         { label: "项目", href: "/projects" },
         { label: project.name, href: `/projects/${project.id}` },
-        { label: "项目设置" }
+        { label: "项目设置" },
       ]}
     >
       <section className="content-grid">
@@ -39,7 +39,7 @@ export default async function ProjectSettingsPage({ params }: ProjectSettingsPag
                 <h3 className="panel-title">更新基础信息</h3>
               </div>
             </div>
-            <ProjectSettingsForm project={project} />
+            <ProjectSettingsForm project={project} teams={teams} />
           </section>
         </div>
 
@@ -48,7 +48,7 @@ export default async function ProjectSettingsPage({ params }: ProjectSettingsPag
             <div className="panel-heading">
               <div>
                 <p className="eyebrow-text">当前摘要</p>
-                <h3 className="panel-title">设置以外的关键状态</h3>
+                <h3 className="panel-title">设置之外的关键信息</h3>
               </div>
               <StatusPill status={project.latestRunStatus ?? project.status} />
             </div>
@@ -61,10 +61,14 @@ export default async function ProjectSettingsPage({ params }: ProjectSettingsPag
             </div>
             {project.latestCertificate ? (
               <div className="soft-note">
-                最近证明书：{project.latestCertificate.title} · 更新于 {formatDateTime(project.latestCertificate.updatedAt)}
+                最近证明书：{project.latestCertificate.title} · 证书号{" "}
+                {project.latestCertificate.certificateNo} · 更新于{" "}
+                {formatDateTime(project.latestCertificate.updatedAt)}
               </div>
             ) : (
-              <div className="soft-note">当前项目还没有证明书摘要，这属于正常的 P2 阶段状态。</div>
+              <div className="soft-note">
+                当前项目还没有证明书摘要，审批通过或手动签发后会出现在这里。
+              </div>
             )}
           </section>
         </div>

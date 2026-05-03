@@ -25,11 +25,11 @@ export default async function ArtifactDetailPage({ params }: ArtifactDetailPageP
     <AppShell
       activeNav="projects"
       title={artifact.title}
-      description="交付产物详情页，查看产物来源、摘要指纹、元数据与所属执行记录。"
+      description="查看产物来源、摘要哈希、结构化元数据以及所属执行记录。"
       breadcrumbs={[
         { label: "项目", href: "/projects" },
         { label: artifact.projectName, href: `/projects/${artifact.projectId}` },
-        { label: "交付产物详情" }
+        { label: "产物详情" },
       ]}
     >
       <section className="content-grid">
@@ -49,7 +49,7 @@ export default async function ArtifactDetailPage({ params }: ArtifactDetailPageP
               <span>MIME 类型：{artifact.mimeType}</span>
               <span>创建时间：{formatDateTime(artifact.createdAt)}</span>
             </div>
-            <div className="soft-note">摘要指纹：{artifact.sha256Digest}</div>
+            <div className="soft-note">摘要哈希：{artifact.sha256Digest}</div>
           </section>
 
           <section className="panel">
@@ -62,19 +62,22 @@ export default async function ArtifactDetailPage({ params }: ArtifactDetailPageP
             {run ? (
               <div className="compact-stack">
                 <p className="supporting-text">
-                  该产物来自任务《{run.taskTitle}》，由 {run.agentName} 在节点 {run.nodeKey} 中产出。
+                  该产物来自任务《{run.taskTitle}》，由 {run.agentName} 在节点 {run.nodeKey}{" "}
+                  中产出。
                 </p>
                 <div className="link-row">
                   <Link href={`/runs/${run.id}`} className="inline-link">
                     查看执行记录
                   </Link>
                   <Link href={`/projects/${artifact.projectId}`} className="inline-link">
-                    返回项目指挥台
+                    返回项目工作台
                   </Link>
                 </div>
               </div>
             ) : (
-              <div className="empty-state">当前无法加载关联执行记录，但产物本身仍已保留在系统中。</div>
+              <div className="empty-state">
+                当前无法加载关联执行记录，但产物本身已经保留在系统中。
+              </div>
             )}
           </section>
         </div>
@@ -96,7 +99,7 @@ export default async function ArtifactDetailPage({ params }: ArtifactDetailPageP
             <div className="panel-heading">
               <div>
                 <p className="eyebrow-text">结构化元数据</p>
-                <h3 className="panel-title">用于后续证明与追踪</h3>
+                <h3 className="panel-title">用于后续证明与追溯</h3>
               </div>
             </div>
             <pre className="code-block">{JSON.stringify(artifact.metadata ?? {}, null, 2)}</pre>

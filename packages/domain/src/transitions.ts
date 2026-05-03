@@ -4,7 +4,11 @@ export function taskStatusOnWorkflowTriggered(): TaskStatus {
   return "in_progress";
 }
 
-export function taskStatusOnRunAwaitingApproval(): TaskStatus {
+export function taskStatusOnRunCompleted(): TaskStatus {
+  return "completed";
+}
+
+export function taskStatusOnApprovalRequested(): TaskStatus {
   return "waiting_approval";
 }
 
@@ -17,14 +21,14 @@ export function applyApprovalDecision(decision: ApprovalDecision): {
     return {
       nextRunStatus: "succeeded",
       nextTaskStatus: "completed",
-      terminal: true
+      terminal: true,
     };
   }
 
   return {
     nextRunStatus: "failed",
     nextTaskStatus: "in_progress",
-    terminal: true
+    terminal: true,
   };
 }
 
@@ -35,4 +39,3 @@ export function isApprovalPending(status: RunStatus): boolean {
 export function isRunTerminal(status: RunStatus): boolean {
   return ["succeeded", "failed", "cancelled", "timed_out"].includes(status);
 }
-

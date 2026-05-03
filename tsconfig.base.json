@@ -6,6 +6,7 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
     "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
     "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "esModuleInterop": true,

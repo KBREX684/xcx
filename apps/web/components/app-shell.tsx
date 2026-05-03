@@ -1,16 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useSyncExternalStore } from "react";
+import { Tooltip } from "@agent-control-plane/ui";
+import { BrandLockup, SwarmHiveIcon } from "./brand-mark";
 import { SidebarNavigation } from "./sidebar-navigation";
-import { SidebarCollapseIcon, SidebarExpandIcon, UserIcon } from "./icons";
+import { SidebarCollapseIcon, SidebarExpandIcon } from "./icons";
 import { ThemeToggle } from "./theme-toggle";
-
-const sidebarStorageKey = "acp-sidebar-collapsed";
+import { CommandPalette } from "./command-palette";
+import { TopProgress } from "./top-progress";
+import { navStore } from "./nav-store";
+import { logoutAction } from "../lib/auth";
 
 export type AppNavKey =
   | "none"
   | "dashboard"
+  | "issues"
+  | "myIssues"
   | "team"
   | "messages"
   | "projects"
@@ -30,7 +36,7 @@ type NavBadgeMap = Partial<Record<AppNavKey, number>>;
 type AppShellProps = {
   activeNav: AppNavKey;
   title: string;
-  description: string;
+  description?: string;
   breadcrumbs?: BreadcrumbItem[];
   navBadges?: NavBadgeMap;
   profileName?: string;
@@ -43,50 +49,43 @@ export function AppShell({
   activeNav,
   title,
   description,
-  breadcrumbs = [],
+  breadcrumbs,
   navBadges,
-  profileName = "KBREX",
-  profileEmail = "kbrex@example.com",
-  workspaceName = "KBREX Studio",
-  children
+  profileName = "指挥台",
+  profileEmail = "",
+  workspaceName = "工作区",
+  children,
 }: AppShellProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  useEffect(() => {
-    try {
-      setSidebarCollapsed(window.localStorage.getItem(sidebarStorageKey) === "true");
-    } catch {
-      setSidebarCollapsed(false);
-    }
-  }, []);
+  // 从 navStore 订阅，避免路由切换时重建造成的"是否折叠"闪烁。
+  const snapshot = useSyncExternalStore(
+    navStore.subscribe,
+    navStore.getSnapshot,
+    navStore.getServerSnapshot,
+  );
+  const sidebarCollapsed = snapshot.sidebarCollapsed;
 
   function toggleSidebar() {
-    setSidebarCollapsed((current) => {
-      const next = !current;
-
-      try {
-        window.localStorage.setItem(sidebarStorageKey, next ? "true" : "false");
-      } catch {
-        // Ignore storage failures so the layout still works.
-      }
-
-      return next;
-    });
+    navStore.setSidebarCollapsed(!sidebarCollapsed);
   }
 
   return (
     <div className="app-shell" data-sidebar-collapsed={sidebarCollapsed ? "true" : "false"}>
+      <TopProgress />
       <aside className="app-sidebar">
         <div className="app-sidebar-toolbar">
-          <button
-            type="button"
-            className="chrome-toggle-button"
-            aria-label="收起侧边栏"
-            title="收起侧边栏"
-            onClick={toggleSidebar}
-          >
-            <SidebarCollapseIcon />
-          </button>
+          <Link href="/" className="app-sidebar-brand" aria-label="蜂聚合 SwarmHive 总览">
+            <BrandLockup size="sidebar" showEnglish={false} />
+          </Link>
+          <Tooltip content="收起侧边栏">
+            <button
+              type="button"
+              className="chrome-toggle-button"
+              aria-label="收起侧边栏"
+              onClick={toggleSidebar}
+            >
+              <SidebarCollapseIcon />
+            </button>
+          </Tooltip>
         </div>
 
         <SidebarNavigation
@@ -95,8 +94,22 @@ export function AppShell({
           profileName={profileName}
           profileEmail={profileEmail}
           workspaceName={workspaceName}
+          idPrefix="desktop"
         />
       </aside>
+
+      {sidebarCollapsed ? (
+        <Tooltip content="展开侧边栏">
+          <button
+            type="button"
+            className="sidebar-edge-toggle"
+            aria-label="展开侧边栏"
+            onClick={toggleSidebar}
+          >
+            <SidebarExpandIcon />
+          </button>
+        </Tooltip>
+      ) : null}
 
       <div className="app-main">
         <header className="app-topbar">
@@ -104,10 +117,11 @@ export function AppShell({
             <details className="mobile-nav">
               <summary className="mobile-nav-trigger">
                 <span className="mobile-nav-trigger-icon">
-                  <UserIcon />
+                  <SwarmHiveIcon />
                 </span>
                 <span>导航</span>
               </summary>
+
               <div className="mobile-nav-panel">
                 <SidebarNavigation
                   activeNav={activeNav}
@@ -115,54 +129,75 @@ export function AppShell({
                   profileName={profileName}
                   profileEmail={profileEmail}
                   workspaceName={workspaceName}
+                  idPrefix="mobile"
                   compact
                   showFooter={false}
                 />
               </div>
             </details>
 
-            <nav className="breadcrumbs" aria-label="面包屑">
-              {breadcrumbs.length === 0 ? (
-                <span className="breadcrumb-current">工作台</span>
-              ) : (
-                breadcrumbs.map((item, index) =>
-                  item.href ? (
-                    <Link key={`${item.label}-${index}`} href={item.href} className="breadcrumb-link">
-                      {item.label}
-                    </Link>
-                  ) : (
-                    <span key={`${item.label}-${index}`} className="breadcrumb-current">
-                      {item.label}
-                    </span>
-                  )
-                )
-              )}
-            </nav>
-
             <div className="page-heading">
+              {breadcrumbs && breadcrumbs.length > 0 ? (
+                <nav className="breadcrumbs" aria-label="页面路径">
+                  {breadcrumbs.map((crumb, index) => {
+                    const isLast = index === breadcrumbs.length - 1;
+                    return (
+                      <span key={`${crumb.label}-${index}`} className="breadcrumb-item">
+                        {crumb.href && !isLast ? (
+                          <Link href={crumb.href} className="breadcrumb-link">
+                            {crumb.label}
+                          </Link>
+                        ) : (
+                          <span className={isLast ? "breadcrumb-current" : "breadcrumb-link"}>
+                            {crumb.label}
+                          </span>
+                        )}
+                        {!isLast ? (
+                          <span className="breadcrumb-separator" aria-hidden="true">
+                            /
+                          </span>
+                        ) : null}
+                      </span>
+                    );
+                  })}
+                </nav>
+              ) : null}
               <h1 className="page-title">{title}</h1>
-              <p className="page-description">{description}</p>
             </div>
           </div>
 
           <div className="topbar-actions">
-            {sidebarCollapsed ? (
+            <Tooltip content="打开命令面板 (Ctrl/⌘ + K)">
               <button
                 type="button"
-                className="chrome-toggle-button shell-reveal-button"
-                aria-label="展开侧边栏"
-                title="展开侧边栏"
-                onClick={toggleSidebar}
+                className="chrome-toggle-button command-palette-trigger"
+                aria-label="打开命令面板"
+                onClick={() => {
+                  window.dispatchEvent(
+                    new KeyboardEvent("keydown", { key: "k", ctrlKey: true, metaKey: true }),
+                  );
+                }}
               >
-                <SidebarExpandIcon />
+                <span aria-hidden="true">⌘K</span>
               </button>
-            ) : null}
+            </Tooltip>
             <ThemeToggle />
+            <form action={logoutAction}>
+              <button type="submit" className="ghost-button">
+                退出登录
+              </button>
+            </form>
           </div>
         </header>
 
-        <main className="app-content">{children}</main>
+        <main className="app-content">
+          <div className="app-content-inner">
+            {description ? <p className="page-lede">{description}</p> : null}
+            {children}
+          </div>
+        </main>
       </div>
+      <CommandPalette />
     </div>
   );
 }

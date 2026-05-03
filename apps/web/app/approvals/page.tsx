@@ -1,79 +1,119 @@
 import Link from "next/link";
 import { AppShell } from "../../components/app-shell";
-import { ApprovalForm } from "../../components/approval-form";
+import { BulkApprovalPanel } from "../../components/bulk-approval-panel";
 import { StatusPill } from "../../components/status-pill";
 import { getApprovals } from "../../lib/api";
-import { formatDateTime, shortTrace } from "../../lib/format";
+import { formatDateTime } from "../../lib/format";
 
-export default async function ApprovalsPage() {
+const approvalPageSize = 10;
+
+type ApprovalsPageProps = {
+  searchParams?: Promise<{
+    pendingPage?: string;
+    historyPage?: string;
+  }>;
+};
+
+function parsePage(value: string | undefined) {
+  const parsed = Number.parseInt(value ?? "1", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
+}
+
+function buildApprovalsHref(next: { pendingPage?: number; historyPage?: number }) {
+  const query = new URLSearchParams();
+  if (next.pendingPage && next.pendingPage > 1) query.set("pendingPage", String(next.pendingPage));
+  if (next.historyPage && next.historyPage > 1) query.set("historyPage", String(next.historyPage));
+  const suffix = query.toString();
+  return suffix ? `/approvals?${suffix}` : "/approvals";
+}
+
+export default async function ApprovalsPage({ searchParams }: ApprovalsPageProps) {
+  const resolved = searchParams ? await searchParams : {};
   const approvals = await getApprovals();
+  const pendingPage = parsePage(resolved.pendingPage);
+  const historyPage = parsePage(resolved.historyPage);
+  const pendingPageCount = Math.max(1, Math.ceil(approvals.pending.length / approvalPageSize));
+  const historyPageCount = Math.max(1, Math.ceil(approvals.history.length / approvalPageSize));
+  const currentPendingPage = Math.min(pendingPage, pendingPageCount);
+  const currentHistoryPage = Math.min(historyPage, historyPageCount);
+  const visiblePending = approvals.pending.slice(
+    (currentPendingPage - 1) * approvalPageSize,
+    currentPendingPage * approvalPageSize,
+  );
+  const visibleHistory = approvals.history.slice(
+    (currentHistoryPage - 1) * approvalPageSize,
+    currentHistoryPage * approvalPageSize,
+  );
 
   return (
     <AppShell
-      activeNav="none"
+      activeNav="approvals"
       title="审批中心"
       description="集中处理待审批执行记录，并保留每一次通过或驳回的历史轨迹。"
-      breadcrumbs={[{ label: "审批" }]}
+      breadcrumbs={[{ label: "审批中心" }]}
     >
-      <section className="content-grid">
-        <div className="stack-panel">
-          <section className="panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow-text">待审批队列</p>
-                <h3 className="panel-title">需要你做决定的执行项</h3>
-              </div>
+      <section className="stack-panel approvals-stack">
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow-text">待审批队列</p>
+              <h3 className="panel-title">需要你做决定的执行项</h3>
             </div>
-            {approvals.pending.length === 0 ? (
-              <div className="empty-state">当前没有待审批执行记录，系统里没有被卡在人工决策点的任务。</div>
-            ) : (
-              <div className="list-stack">
-                {approvals.pending.map((item) => (
-                  <article key={item.runId} className="list-card">
-                    <div className="list-card-head">
-                      <div>
-                        <h4 className="list-card-title">{item.taskTitle}</h4>
-                        <p className="supporting-text">
-                          {item.projectName} · 由 {item.agentName} 负责推进
-                        </p>
-                      </div>
-                      <StatusPill status="waiting_approval" />
-                    </div>
-                    <div className="meta-row">
-                      <span>项目编号 {item.projectCode}</span>
-                      <span>追踪标识 {shortTrace(item.traceId, 10)}</span>
-                      <span>{formatDateTime(item.requestedAt)}</span>
-                    </div>
-                    <p className="soft-note">{item.outputSummary ?? "当前没有补充输出摘要，可进入执行详情页查看原始内容。"}</p>
-                    <div className="link-row">
-                      <Link href={`/runs/${item.runId}`} className="inline-link">
-                        查看执行详情
-                      </Link>
-                      <Link href={`/projects/${item.projectId}`} className="inline-link">
-                        打开项目指挥台
-                      </Link>
-                    </div>
-                    <div className="embedded-form">
-                      <ApprovalForm projectId={item.projectId} runId={item.runId} returnPath="/approvals" />
-                    </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
+          </div>
+          {approvals.pending.length === 0 ? (
+            <div className="empty-state">
+              当前没有待审批执行记录，系统里没有卡在人为决策点的任务。
+            </div>
+          ) : (
+            <>
+              <BulkApprovalPanel pending={visiblePending} />
+              {approvals.pending.length > approvalPageSize ? (
+                <div className="pagination-bar" aria-label="待审批队列分页">
+                  <span>
+                    第 {currentPendingPage} / {pendingPageCount} 页，共 {approvals.pending.length}{" "}
+                    条
+                  </span>
+                  <div className="pagination-actions">
+                    <Link
+                      href={buildApprovalsHref({
+                        pendingPage: Math.max(1, currentPendingPage - 1),
+                        historyPage: currentHistoryPage,
+                      })}
+                      className={`secondary-action${currentPendingPage <= 1 ? " is-disabled" : ""}`}
+                      aria-disabled={currentPendingPage <= 1}
+                    >
+                      上一页
+                    </Link>
+                    <Link
+                      href={buildApprovalsHref({
+                        pendingPage: Math.min(pendingPageCount, currentPendingPage + 1),
+                        historyPage: currentHistoryPage,
+                      })}
+                      className={`secondary-action${currentPendingPage >= pendingPageCount ? " is-disabled" : ""}`}
+                      aria-disabled={currentPendingPage >= pendingPageCount}
+                    >
+                      下一页
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
+        </section>
 
-        <div className="stack-panel">
-          <section className="panel">
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow-text">审批历史</p>
-                <h3 className="panel-title">最近完成的决策</h3>
-              </div>
+        <section className="panel">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow-text">审批历史</p>
+              <h3 className="panel-title">最近完成的决策</h3>
             </div>
-            {approvals.history.length === 0 ? (
-              <div className="empty-state">还没有审批历史。首次通过或驳回之后，这里就会开始沉淀记录。</div>
-            ) : (
+          </div>
+          {approvals.history.length === 0 ? (
+            <div className="empty-state">
+              还没有审批历史。首次通过或驳回之后，这里会开始沉淀记录。
+            </div>
+          ) : (
+            <>
               <div className="table-wrap">
                 <table className="data-table">
                   <thead>
@@ -86,7 +126,7 @@ export default async function ApprovalsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {approvals.history.map((item) => (
+                    {visibleHistory.map((item) => (
                       <tr key={`${item.runId}-${item.decidedAt}`}>
                         <td>
                           <Link href={`/projects/${item.projectId}`} className="table-link">
@@ -108,9 +148,39 @@ export default async function ApprovalsPage() {
                   </tbody>
                 </table>
               </div>
-            )}
-          </section>
-        </div>
+              {approvals.history.length > approvalPageSize ? (
+                <div className="pagination-bar" aria-label="审批历史分页">
+                  <span>
+                    第 {currentHistoryPage} / {historyPageCount} 页，共 {approvals.history.length}{" "}
+                    条
+                  </span>
+                  <div className="pagination-actions">
+                    <Link
+                      href={buildApprovalsHref({
+                        pendingPage: currentPendingPage,
+                        historyPage: Math.max(1, currentHistoryPage - 1),
+                      })}
+                      className={`secondary-action${currentHistoryPage <= 1 ? " is-disabled" : ""}`}
+                      aria-disabled={currentHistoryPage <= 1}
+                    >
+                      上一页
+                    </Link>
+                    <Link
+                      href={buildApprovalsHref({
+                        pendingPage: currentPendingPage,
+                        historyPage: Math.min(historyPageCount, currentHistoryPage + 1),
+                      })}
+                      className={`secondary-action${currentHistoryPage >= historyPageCount ? " is-disabled" : ""}`}
+                      aria-disabled={currentHistoryPage >= historyPageCount}
+                    >
+                      下一页
+                    </Link>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
+        </section>
       </section>
     </AppShell>
   );

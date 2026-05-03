@@ -1,15 +1,53 @@
+# Dependencies
 node_modules/
-.next/
-dist/
-coverage/
-.data/
-.test-data/
-playwright-report/
-test-results/
+.tools/
+
+# Environment and local databases
+.env
+.env.local
+.env.*.local
 prisma/dev.db
+prisma/dev.db-journal
 prisma/test.db
 prisma/test.db-journal
-prisma/dev.db-journal
-.env
-npm-debug.log*
+prisma/schema.postgresql.generated.prisma
+
+# Runtime evidence/artifact storage
+.data/
+.test-data/
 .runtime-logs/
+
+# Build and framework output
+.next/
+.turbo/
+.vercel/
+.vite/
+.cache/
+.expo/
+dist/
+dist-expo/
+build/
+coverage/
+*.tsbuildinfo
+
+# Android signing and local machine state
+apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
+apps/mobile/android/app/.cxx/
+apps/mobile/android/app/build/
+apps/mobile/android/app/debug.keystore
+*.keystore
+*.jks
+*.p12
+
+# Test output
+playwright-report/
+test-results/
+
+# Storybook
+storybook-static/
+
+# Logs
+npm-debug.log*
+*.log
+*.err.log

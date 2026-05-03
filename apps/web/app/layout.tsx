@@ -1,47 +1,33 @@
 import type { CSSProperties, ReactNode } from "react";
-import Script from "next/script";
+import { cookies } from "next/headers";
+import { Toaster } from "sonner";
 import { controlPlaneTypography } from "@agent-control-plane/ui";
 import "./globals.css";
+import "@agent-control-plane/ui/tokens.css";
+
+const themeStorageKey = "acp-theme-preference";
 
 const rootVariables: CSSProperties = {
   ["--font-display" as string]: controlPlaneTypography.display,
   ["--font-body" as string]: controlPlaneTypography.body,
-  ["--font-mono" as string]: controlPlaneTypography.mono
+  ["--font-mono" as string]: controlPlaneTypography.mono,
 };
-
-const themeBootScript = `
-(() => {
-  const key = "acp-theme-preference";
-  const root = document.documentElement;
-  try {
-    const saved = localStorage.getItem(key);
-    const preference = saved === "light" || saved === "dark" ? saved : "system";
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const resolved = preference === "system" ? (media.matches ? "dark" : "light") : preference;
-    root.dataset.themePreference = preference;
-    root.dataset.theme = resolved;
-    root.style.colorScheme = resolved;
-  } catch {
-    root.dataset.themePreference = "system";
-    root.dataset.theme = "light";
-    root.style.colorScheme = "light";
-  }
-})();
-`;
 
 export const metadata = {
-  title: "智能代理指挥台",
-  description: "全中文、可切换明暗主题的 AI Agent 控制台"
+  title: "蜂聚合指挥台",
+  description: "蜂聚合智能体交付控制台，管理项目、任务、审批与证明。",
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const themeCookie = cookieStore.get(themeStorageKey)?.value;
+  const initialTheme = themeCookie === "light" || themeCookie === "dark" ? themeCookie : undefined;
+
   return (
-    <html lang="zh-CN" suppressHydrationWarning style={rootVariables}>
+    <html lang="zh-CN" suppressHydrationWarning style={rootVariables} data-theme={initialTheme}>
       <body>
-        <Script id="theme-boot" strategy="beforeInteractive">
-          {themeBootScript}
-        </Script>
         {children}
+        <Toaster position="top-right" richColors closeButton toastOptions={{ duration: 4000 }} />
       </body>
     </html>
   );

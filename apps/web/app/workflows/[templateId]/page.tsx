@@ -1,17 +1,44 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "../../../components/app-shell";
-import { StatusPill } from "../../../components/status-pill";
+import { DataList, DataListCell } from "../../../components/data-list";
+import { ViewHeader } from "../../../components/view-header";
+import { WorkspaceFrame } from "../../../components/workspace-frame";
 import { getWorkflowTemplate } from "../../../lib/api";
-import { formatDateTime, getNodeTypeLabel, getScenarioTypeLabel, getTriggerTypeLabel } from "../../../lib/format";
+import {
+  getNodeTypeLabel,
+  getScenarioTypeLabel,
+  getTriggerTypeLabel,
+  getWorkflowStatusLabel,
+} from "../../../lib/format";
 
 type WorkflowDetailPageProps = {
-  params: Promise<{
-    templateId: string;
-  }>;
+  params: Promise<{ templateId: string }>;
+  searchParams?: Promise<{ tab?: string | string[] }>;
 };
 
-export default async function WorkflowDetailPage({ params }: WorkflowDetailPageProps) {
+type WorkflowDetailTab = "overview" | "nodes" | "settings";
+
+const WORKFLOW_DETAIL_TABS: Array<{ key: WorkflowDetailTab; label: string }> = [
+  { key: "overview", label: "总览" },
+  { key: "nodes", label: "节点" },
+  { key: "settings", label: "设置" },
+];
+
+function getWorkflowDetailTab(tab: string | string[] | undefined): WorkflowDetailTab {
+  const value = Array.isArray(tab) ? tab[0] : tab;
+  return WORKFLOW_DETAIL_TABS.some((item) => item.key === value)
+    ? (value as WorkflowDetailTab)
+    : "overview";
+}
+
+export default async function WorkflowDetailPage({
+  params,
+  searchParams,
+}: WorkflowDetailPageProps) {
   const { templateId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const activeTab = getWorkflowDetailTab(resolvedSearchParams.tab);
   const workflow = await getWorkflowTemplate(templateId).catch(() => null);
 
   if (!workflow) {
@@ -21,61 +48,142 @@ export default async function WorkflowDetailPage({ params }: WorkflowDetailPageP
   return (
     <AppShell
       activeNav="workflows"
-      title={workflow.name}
-      description="流程模板详情页，查看当前内置流程的版本、场景归属与节点构成。"
-      breadcrumbs={[
-        { label: "流程模板", href: "/workflows" },
-        { label: workflow.name }
-      ]}
+      title="流程模板"
+      breadcrumbs={[{ label: "流程模板", href: "/workflows" }, { label: workflow.name }]}
     >
-      <section className="metrics-grid">
-        <article className="metric-card">
-          <div className="metric-label">模板状态</div>
-          <div className="metric-value-row">
-            <StatusPill status={workflow.status} />
-          </div>
-          <p className="metric-note">场景：{getScenarioTypeLabel(workflow.scenarioType)}</p>
-        </article>
-        <article className="metric-card">
-          <div className="metric-label">触发方式</div>
-          <div className="metric-value metric-value-text">{getTriggerTypeLabel(workflow.triggerType)}</div>
-          <p className="metric-note">最近触发：{formatDateTime(workflow.lastTriggeredAt)}</p>
-        </article>
-        <article className="metric-card">
-          <div className="metric-label">版本</div>
-          <div className="metric-value metric-value-text">{workflow.version}</div>
-          <p className="metric-note">P2 仍以单模板为中心验证闭环。</p>
-        </article>
-        <article className="metric-card">
-          <div className="metric-label">累计使用</div>
-          <div className="metric-value">{workflow.usageCount}</div>
-          <p className="metric-note">这是当前模板被触发的累计次数。</p>
-        </article>
-      </section>
+      <WorkspaceFrame>
+        <ViewHeader
+          eyebrow="流程"
+          title={workflow.name}
+          description={getScenarioTypeLabel(workflow.scenarioType)}
+          tabs={WORKFLOW_DETAIL_TABS.map((tab) => ({
+            key: tab.key,
+            label: tab.label,
+            href:
+              tab.key === "overview"
+                ? `/workflows/${workflow.id}`
+                : `/workflows/${workflow.id}?tab=${tab.key}`,
+            active: activeTab === tab.key,
+          }))}
+          actions={
+            <>
+              <Link href="/workflows" className="ghost-button">
+                返回流程模板
+              </Link>
+              <Link href={`/workflows/${workflow.id}/edit`} className="action-button">
+                编辑模板
+              </Link>
+            </>
+          }
+        />
 
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow-text">节点结构</p>
-            <h3 className="panel-title">当前模板共 {workflow.nodes.length} 个节点</h3>
-          </div>
-        </div>
-        <div className="cards-grid">
-          {workflow.nodes.map((node, index) => (
-            <article key={node.key} className="card-panel">
-              <p className="eyebrow-text">
-                节点 {index + 1} · {getNodeTypeLabel(node.type)}
-              </p>
-              <h4 className="list-card-title">{node.name}</h4>
-              <div className="meta-column">
-                <span>节点标识：{node.key}</span>
-                <span>节点类型：{getNodeTypeLabel(node.type)}</span>
-                <span>{node.boundAgentId ? `绑定代理：${node.boundAgentId}` : "当前没有绑定代理"}</span>
+        {activeTab === "overview" ? (
+          <div className="workflow-detail-tab">
+            <div className="workflow-detail-summary">
+              <div>
+                <span>状态</span>
+                <strong>{getWorkflowStatusLabel(workflow.status)}</strong>
               </div>
-            </article>
-          ))}
-        </div>
-      </section>
+              <div>
+                <span>版本</span>
+                <strong>{workflow.version}</strong>
+              </div>
+              <div>
+                <span>触发方式</span>
+                <strong>{getTriggerTypeLabel(workflow.triggerType)}</strong>
+              </div>
+              <div>
+                <span>累计使用</span>
+                <strong>{workflow.usageCount}</strong>
+              </div>
+            </div>
+            <section className="workflow-node-map">
+              {workflow.nodes.map((node, index) => (
+                <article key={node.key} className="workflow-node-map__item">
+                  <span className="workflow-node-index">{index + 1}</span>
+                  <div>
+                    <strong>{node.name}</strong>
+                    <p>
+                      {getNodeTypeLabel(node.type)}
+                      {node.boundAgentId ? ` · ${node.boundAgentId}` : ""}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </section>
+          </div>
+        ) : null}
+
+        {activeTab === "nodes" ? (
+          <div className="workflow-list-table">
+            <DataList columns={["节点", "类型", "智能体", "能力", "传输", "状态"]}>
+              {workflow.nodes.map((node, index) => (
+                <div key={node.key} className="data-list-row">
+                  <DataListCell tone="primary">
+                    {index + 1}. {node.name}
+                  </DataListCell>
+                  <DataListCell>{getNodeTypeLabel(node.type)}</DataListCell>
+                  <DataListCell>{node.boundAgentId ?? "未绑定"}</DataListCell>
+                  <DataListCell>{node.capabilityCode ?? "-"}</DataListCell>
+                  <DataListCell>{node.transport ?? "-"}</DataListCell>
+                  <DataListCell>
+                    <span className="status-pill" data-tone={workflow.status}>
+                      {getWorkflowStatusLabel(workflow.status)}
+                    </span>
+                  </DataListCell>
+                </div>
+              ))}
+            </DataList>
+          </div>
+        ) : null}
+
+        {activeTab === "settings" ? (
+          <div className="workflow-settings-grid">
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow-text">模板属性</p>
+                  <h3 className="panel-title">发布与触发设置</h3>
+                </div>
+              </div>
+              <dl className="proof-meta">
+                <div>
+                  <dt>业务场景</dt>
+                  <dd>{getScenarioTypeLabel(workflow.scenarioType)}</dd>
+                </div>
+                <div>
+                  <dt>触发方式</dt>
+                  <dd>{getTriggerTypeLabel(workflow.triggerType)}</dd>
+                </div>
+                <div>
+                  <dt>模板状态</dt>
+                  <dd>{getWorkflowStatusLabel(workflow.status)}</dd>
+                </div>
+                <div>
+                  <dt>节点数量</dt>
+                  <dd>{workflow.nodes.length}</dd>
+                </div>
+              </dl>
+            </section>
+            <section className="panel">
+              <div className="panel-heading">
+                <div>
+                  <p className="eyebrow-text">编辑</p>
+                  <h3 className="panel-title">独立编辑页面</h3>
+                </div>
+              </div>
+              <p className="supporting-text">
+                编辑模板会进入独立页面，避免在详情页混合阅读、配置和发布操作。
+              </p>
+              <div className="workflow-builder-footer">
+                <Link href={`/workflows/${workflow.id}/edit`} className="action-button">
+                  编辑模板
+                </Link>
+              </div>
+            </section>
+          </div>
+        ) : null}
+      </WorkspaceFrame>
     </AppShell>
   );
 }
