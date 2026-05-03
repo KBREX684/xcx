@@ -2,6 +2,7 @@
   "name": "agent-control-plane",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "packageManager": "npm@11.11.0",
   "workspaces": [
     "apps/mobile",

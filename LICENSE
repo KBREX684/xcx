@@ -1,0 +1,39 @@
+Proprietary Commercial License
+
+Copyright (c) 2026 KBREX684. All rights reserved.
+
+This repository and all source code, designs, documentation, workflows,
+mobile applications, web applications, build scripts, configuration files,
+test artifacts, and related materials in it are proprietary confidential
+materials owned by KBREX684 and its authorized project owner.
+
+No open-source license is granted. Unless a separate written commercial
+license agreement signed by the owner expressly permits it, you may not:
+
+- copy, reproduce, mirror, scrape, or redistribute this repository or any
+  substantial part of it;
+- sell, sublicense, lease, host, publish, or make commercial use of the
+  software or materials;
+- create derivative works, competing products, white-label products, or
+  training datasets based on the software or materials;
+- remove or alter copyright, ownership, authorship, provenance, or license
+  notices;
+- use the repository name, product identity, screenshots, workflow evidence,
+  or project materials to imply endorsement or ownership.
+
+Access to this repository is provided only for review, evaluation,
+development, or collaboration authorized by the owner. Any authorized access
+must preserve this notice and must not transfer rights to any third party.
+
+Third-party dependencies keep their own licenses. This license applies only
+to the original project materials in this repository and does not change the
+licenses of external dependencies.
+
+For commercial licensing, partnership, review, or other written permission,
+contact the repository owner through the official GitHub repository:
+
+https://github.com/KBREX684/xcx
+
+Unauthorized use is strictly prohibited. The owner reserves all rights and
+remedies available under applicable copyright, contract, trade secret, and
+commercial law.

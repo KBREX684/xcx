@@ -2,6 +2,7 @@
   "name": "@agent-control-plane/web",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "dependencies": {
     "@agent-control-plane/config": "0.1.0",
     "@agent-control-plane/domain": "0.1.0",
